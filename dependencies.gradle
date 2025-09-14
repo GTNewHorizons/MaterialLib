@@ -34,5 +34,14 @@
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configurations_graph
  */
 dependencies {
+    api("com.github.GTNewHorizons:GTNHLib:0.6.39:dev")
+    api("org.jetbrains:annotations:26.0.2")
+
+    compileOnly("com.google.auto.value:auto-value-annotations:1.10.1") { transitive = false }
+    annotationProcessor("com.google.auto.value:auto-value:1.10.1")
+
+    compileOnly('org.projectlombok:lombok:1.18.34')
+    annotationProcessor('org.projectlombok:lombok:1.18.34')
+
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.7.77-GTNH:dev")
 }

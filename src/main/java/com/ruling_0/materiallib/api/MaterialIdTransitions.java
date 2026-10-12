@@ -6,15 +6,15 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMaps;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
 
 /// The per-world chain of material id transitions, `v<K>-to-v<K+1>.json` files under
 /// `<worldDir>/materiallib/transitions`.
@@ -24,13 +24,28 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 /// steps into a single remap.
 public final class MaterialIdTransitions {
 
+    /// [#remap] and [#compose] result for an index whose material was removed.
+    public static final int DELETE = -1;
+
     static final String DIRECTORY = "transitions";
     private static final Pattern FILE_NAME = Pattern.compile("v(\\d+)-to-v(\\d+)\\.json");
 
     private final Int2ObjectMap<Step> stepsByFromVersion;
+    private final ConcurrentHashMap<Long, Int2IntMap> remaps = new ConcurrentHashMap<>();
 
     private MaterialIdTransitions(Int2ObjectMap<Step> stepsByFromVersion) {
         this.stepsByFromVersion = stepsByFromVersion;
+    }
+
+    /// Returns a chain with no steps.
+    public static MaterialIdTransitions empty() {
+        return new MaterialIdTransitions(new Int2ObjectOpenHashMap<>());
+    }
+
+    /// Same as [#compose], memoized per span. The returned map is unmodifiable.
+    public Int2IntMap remap(int fromVersion, int toVersion) {
+        long span = ((long) fromVersion << 32) | (toVersion & 0xFFFFFFFFL);
+        return remaps.computeIfAbsent(span, key -> Int2IntMaps.unmodifiable(compose(fromVersion, toVersion)));
     }
 
     /// Loads every transition file in `dir`; a missing directory yields an empty chain. Throws
@@ -49,10 +64,10 @@ public final class MaterialIdTransitions {
         return new MaterialIdTransitions(steps);
     }
 
-    /// The single remap taking indices stamped at `fromVersion` to `toVersion`: an entry per index that
-    /// changes, mapped to its final index, or to [MaterialMigration#DELETE] when its material was removed
-    /// along the way. Indices absent from the map are unchanged. Throws [IllegalStateException] when a step
-    /// in the span is missing.
+    /// Returns the single remap taking indices stamped at `fromVersion` to `toVersion`. It holds an entry per index
+    /// that changed, mapped to its final index or to [#DELETE] when its material was removed along the way. Indices
+    /// absent from the map are unchanged. Throws [IllegalArgumentException] when `fromVersion` is past `toVersion`, and
+    /// [IllegalStateException] when a step in the span is missing.
     public Int2IntMap compose(int fromVersion, int toVersion) {
         if (fromVersion > toVersion) {
             throw new IllegalArgumentException(
@@ -71,13 +86,10 @@ public final class MaterialIdTransitions {
             Int2IntMap next = new Int2IntOpenHashMap();
             for (Int2IntMap.Entry entry : current.int2IntEntrySet()) {
                 int at = entry.getIntValue();
-                next.put(entry.getIntKey(), at == MaterialMigration.DELETE ? MaterialMigration.DELETE : step.apply(at));
+                next.put(entry.getIntKey(), step.apply(at));
             }
-            for (int movedFrom : step.moved().keySet()) {
-                if (!current.containsKey(movedFrom)) next.put(movedFrom, step.moved().get(movedFrom));
-            }
-            for (int removedIndex : step.removed()) {
-                if (!current.containsKey(removedIndex)) next.put(removedIndex, MaterialMigration.DELETE);
+            for (Int2IntMap.Entry entry : step.changed().int2IntEntrySet()) {
+                if (!current.containsKey(entry.getIntKey())) next.put(entry.getIntKey(), entry.getIntValue());
             }
             current = next;
         }
@@ -109,33 +121,32 @@ public final class MaterialIdTransitions {
             Integer.parseInt(name.group(2)) != data.to) {
             throw new IllegalStateException(corrupt(file) + " (the file name does not match its versions)");
         }
-        Int2IntMap moved = new Int2IntOpenHashMap();
+        Int2IntMap changed = new Int2IntOpenHashMap();
         for (Map.Entry<Integer, Integer> entry : data.moved.entrySet()) {
             if (entry.getKey() == null || entry.getKey() < 0 || entry.getValue() == null || entry.getValue() < 0) {
                 throw new IllegalStateException(corrupt(file) + " (invalid moved entry " + entry + ")");
             }
-            moved.put((int) entry.getKey(), (int) entry.getValue());
+            changed.put((int) entry.getKey(), (int) entry.getValue());
         }
-        IntSet removed = new IntOpenHashSet();
         for (Integer index : data.removed) {
-            if (index == null || index < 0 || moved.containsKey((int) index)) {
+            if (index == null || index < 0 || changed.containsKey((int) index)) {
                 throw new IllegalStateException(corrupt(file) + " (invalid removed index " + index + ")");
             }
-            removed.add((int) index);
+            changed.put((int) index, DELETE);
         }
-        return new Step(data.from, moved, removed);
+        return new Step(data.from, changed);
     }
 
     private static String corrupt(File file) {
         return "The material id transition at " + file + " is unreadable or malformed. Fix or restore the file.";
     }
 
-    private record Step(int from, Int2IntMap moved, IntSet removed) {
+    private record Step(int from, Int2IntMap changed) {
 
-        /// The index an index at this step's `from` version holds at `from + 1`, or [MaterialMigration#DELETE].
+        /// Returns the index the material at `index` holds at list version `from + 1`, or
+        /// [MaterialIdTransitions#DELETE] when it was removed.
         int apply(int index) {
-            if (moved.containsKey(index)) return moved.get(index);
-            return removed.contains(index) ? MaterialMigration.DELETE : index;
+            return changed.getOrDefault(index, index);
         }
     }
 

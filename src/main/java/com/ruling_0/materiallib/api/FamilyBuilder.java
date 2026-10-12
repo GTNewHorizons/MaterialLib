@@ -34,8 +34,7 @@ public final class FamilyBuilder {
         return setProperty(StandardProperties.TINT, tint);
     }
 
-    /// Sets a property value for all members that do not set their own. Rejects [StandardProperties#NAME] and
-    /// [StandardProperties#TEXTURE_SET].
+    /// Sets a property value for all members that do not set their own. Rejects [StandardProperties#TEXTURE_SET].
     public <T> FamilyBuilder setProperty(Property<T> property, T value) {
         StandardProperties.requireSettable(property, value);
         properties.put(property, value);
@@ -82,8 +81,8 @@ public final class FamilyBuilder {
         return this;
     }
 
-    /// Registers the family and returns it. Fails if a family with the same modid and name already exists or the
-    /// registry has already resolved.
+    /// Registers the family and returns it. Fails if called twice, if a family with the same modid and name already
+    /// exists, or if the registry has already resolved.
     public Family build() {
         if (built) {
             throw new IllegalStateException("Family " + Names.key(modid, name) + " was already built");

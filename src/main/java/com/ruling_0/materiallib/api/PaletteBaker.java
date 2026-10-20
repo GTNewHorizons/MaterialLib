@@ -1,5 +1,15 @@
 package com.ruling_0.materiallib.api;
 
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
+import java.awt.image.DataBufferInt;
+import java.awt.image.DirectColorModel;
+import java.awt.image.IndexColorModel;
+import java.awt.image.Raster;
+import java.awt.image.WritableRaster;
+
 /// Handles the pixel-level arithmetic behind [PaletteRef].
 ///
 /// A base texture's distinct HSV values are ranked from brightest to darkest, and each pixel takes the palette
@@ -93,6 +103,57 @@ final class PaletteBaker {
             int blue = ((src[i] & 0xFF) * srcAlpha + (dst[i] & 0xFF) * carried + half) / alpha;
             dst[i] = (alpha << 24) | (red << 16) | (green << 8) | blue;
         }
+    }
+
+    /// The pixels of `image` as ARGB, row by row. The layouts ImageIO decodes 8-bit PNGs into (RGBA, RGB and
+    /// indexed color) are read straight from the raster; any other layout goes through `getRGB`, which converts one
+    /// pixel at a time.
+    static int[] argb(BufferedImage image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int count = width * height;
+        DataBuffer buffer = image.getRaster().getDataBuffer();
+        if (image.getRaster().getParent() == null && buffer instanceof DataBufferByte bytes &&
+            bytes.getNumBanks() == 1 && bytes.getOffset() == 0) {
+            byte[] data = bytes.getData();
+            int[] argb = new int[count];
+            switch (image.getType()) {
+                case BufferedImage.TYPE_4BYTE_ABGR -> {
+                    if (data.length != count * 4) break;
+                    for (int i = 0, j = 0; i < count; i++, j += 4) {
+                        argb[i] = (data[j] & 0xFF) << 24 | (data[j + 3] & 0xFF) << 16 | (data[j + 2] & 0xFF) << 8 |
+                            data[j + 1] & 0xFF;
+                    }
+                    return argb;
+                }
+                case BufferedImage.TYPE_3BYTE_BGR -> {
+                    if (data.length != count * 3) break;
+                    for (int i = 0, j = 0; i < count; i++, j += 3) {
+                        argb[i] = 0xFF000000 | (data[j + 2] & 0xFF) << 16 | (data[j + 1] & 0xFF) << 8 | data[j] & 0xFF;
+                    }
+                    return argb;
+                }
+                case BufferedImage.TYPE_BYTE_INDEXED -> {
+                    if (data.length != count) break;
+                    int[] colors = new int[256];
+                    ((IndexColorModel) image.getColorModel()).getRGBs(colors);
+                    for (int i = 0; i < count; i++) {
+                        argb[i] = colors[data[i] & 0xFF];
+                    }
+                    return argb;
+                }
+                default -> {}
+            }
+        }
+        return image.getRGB(0, 0, width, height, null, 0, width);
+    }
+
+    /// An ARGB image drawn straight from `pixels`, row by row, without copying them.
+    static BufferedImage image(int[] pixels, int width, int height) {
+        DirectColorModel model = (DirectColorModel) ColorModel.getRGBdefault();
+        WritableRaster raster = Raster.createPackedRaster(new DataBufferInt(pixels, pixels.length), width, height,
+            width, model.getMasks(), null);
+        return new BufferedImage(model, raster, false, null);
     }
 
     private static int value(int argb) {

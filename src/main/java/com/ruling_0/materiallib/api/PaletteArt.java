@@ -57,7 +57,7 @@ final class PaletteArt {
         if (image == null) throw new IOException("no image reader accepted the file");
         int width = image.getWidth();
         int height = image.getHeight();
-        int[] argb = image.getRGB(0, 0, width, height, null, 0, width);
+        int[] argb = PaletteBaker.argb(image);
         return new Texture(width, height, argb, PaletteBaker.index(argb, width, height),
             (AnimationMetadataSection) resource.getMetadata("animation"));
     }

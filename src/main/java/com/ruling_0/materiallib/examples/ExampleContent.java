@@ -20,7 +20,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 /// during construction as described in the event doc. This handler subscribes in preInit, once the config is read.
 ///
 /// The materials are TestIron and TestGold, which both tint a base texture, and TestPalette, which bakes the
-/// same art through a palette column instead.
+/// same art through its palette png instead.
 /// The testFrame block shape reaches all three materials through the Test family; the testGear
 /// item shape, ingot and block shapes, test fluid shape, testBucket fluid-in-container shape, and testOre
 /// block shape are generated on the materials directly. testOre demonstrates block shape variants: a stone
@@ -30,8 +30,8 @@ import cpw.mods.fml.common.registry.GameRegistry;
 /// TestGold show per-pair display names. TestGold is emissive and testOre sets emissive layers, so TestGold's
 /// testOre icon glows.
 ///
-/// TestPalette draws column 1 of the `test` palette, a four-entry column short enough to merge the art's darker
-/// shades. Its ingot2 shape shows the composite: the numbered layers baked through the same column and the
+/// TestPalette draws `palettes/TestPalette.png`, four entries, few enough to merge the art's darker shades. Its
+/// ingot2 shape shows the composite: the numbered layers baked through the same palette and the
 /// `_OVERLAY` left in its authored colors, flattened into one animated sprite from layers that are two-frame
 /// strips themselves. testOre draws the baked icon over its untinted vanilla variant bases and testBucket a baked
 /// fill over its untinted base, while the fluid still tints from the material's TINT.
@@ -108,7 +108,7 @@ public final class ExampleContent {
 
         MaterialLibAPI.newMaterial(MaterialLib.MODID, "TestPalette", test)
             .addToFamily(testFamily)
-            .usePalette(MaterialLib.MODID, "test", 1).setTint(0xFF4488FF)
+            .setTint(0xFF4488FF)
             .generateShapes(testGear, ingot, block, testFluid, testBucket, testOre, ingot2)
             .addTooltip("Palette baked")
             .build();

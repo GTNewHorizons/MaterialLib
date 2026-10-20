@@ -88,15 +88,16 @@ untinted overlay texture.
 tints the base layer of their Shapes. Layers are tinted by a
 `LAYER_TINTS` property. Layers without a matching tint are
 untinted.
-- **Palettes:** Each Material, through `usePalette` in its
-builder, can be given a modid, name of a palette, and an index
-for its column in it. Then, rather than tint, the Shape textures
-will be colored using the palette. Each shade in the Shape
-texture, by descending value (of HSV, brightness), is replaced
-with the corresponding entry in the palette column. If there are
-more shades in the original art than entries in the palette
-column, the last entry is repeated as necessary. Layers share
-the same palette column.
+- **Palettes:** A Material whose palette png exists, named after
+the Material, is colored by that palette rather than tinted.
+Each shade in the Shape texture, by descending value (of HSV,
+brightness), is replaced with the corresponding entry in the
+palette, read top to bottom from its first column. If there are
+more shades in the original art than entries in the palette,
+the last entry is repeated as necessary. Layers share the same
+palette. A Material without a palette png keeps its tint, so a
+resource pack can switch any Material to a palette by adding
+one.
 
 In either system, individual Shapes of a specific Material can
 be given custom textures through textures at
@@ -113,17 +114,17 @@ textures.
 > where n is the nth layer, starting at 1. Fluids read from
 > `blocks`.
 > - Palettes are placed in
-> `assets/<modid>/textures/palettes/<name>.png`.
+> `assets/<modid>/textures/palettes/<MaterialName>.png`, under
+> the Material's own modid, matching its name's case.
 
 > [!TIP]
 >
 > The Palette system allows for more expression than the tint
 > system; however, it requires more work to implement. One must
-> take care that indices are properly maintained, and that the
-> base textures use a number of shades (by value) that all
-> palette columns support. If some Materials need to express
-> more colors than others, consider repeating colors in some
-> columns.
+> take care that the base textures use a number of shades (by
+> value) that all palettes support. If some Materials need to
+> express more colors than others, consider repeating colors in
+> some palettes.
 
 ## Examples
 `ExampleContent` contains examples on using various API

@@ -15,8 +15,8 @@ import com.ruling_0.materiallib.MaterialLib;
 /// `cellTint`. The value is AARRGGBB hex. An entry changes what renders, not what [Material#getProperty] returns.
 /// Every material reads `tint`. The other four keys are read only for a material that sets the matching property.
 /// A numbered icon layer is keyed `color.resource.materiallib.<MaterialName>.tint.<n>`, `<n>` being the layer's
-/// number, and is read only for a material whose [#LAYER_TINTS] codes element `n - 1`. A material setting
-/// [#PALETTE] draws its shape art baked instead of tinted, so a pack recolors that art through the palette png
+/// number, and is read only for a material whose [#LAYER_TINTS] codes element `n - 1`. A material with a palette png
+/// ([PaletteRef]) draws its shape art baked instead of tinted, so a pack recolors that art through the palette png
 /// rather than these keys.
 public final class StandardProperties {
 
@@ -83,11 +83,6 @@ public final class StandardProperties {
     /// cell fill tinted differently than the fluid itself. Null when unset, falling back to [#FLUID_TINT], then
     /// [#TINT]. The fluid's own rendering (see [ShapeFluid]) never consults this property.
     public static final Property<Integer> CELL_TINT = Property.of(MaterialLib.MODID, "cellTint");
-
-    /// The palette the material's shape art bakes through in place of the tint path; see [PaletteRef]. Null when
-    /// unset. A fluid still reads [#TINT] and [#FLUID_TINT]. A family sets it only through the generic
-    /// [FamilyBuilder#setProperty].
-    public static final Property<PaletteRef> PALETTE = Property.of(MaterialLib.MODID, "palette");
 
     /// Whether the material's icon layers draw full-bright on a block shape that sets [#EMISSIVE_LAYERS]. Every other
     /// shape ignores it. With MaterialLib's `renderEmissiveLayers` option off, these layers are not drawn at all.

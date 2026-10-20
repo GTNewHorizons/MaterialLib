@@ -21,7 +21,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /// One atlas sprite baked from a shape's art through a [PaletteRef]: the base texture and its numbered layers
-/// recolored by the palette's column, the overlay kept without coloring, all flattened in draw order into one
+/// recolored by the palette's entries, the overlay kept without coloring, all flattened in draw order into one
 /// sprite.
 ///
 /// Baking happens inside Forge's custom-loader hook, which replaces the atlas's own read of a file named after
@@ -29,9 +29,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 /// the constructor. Animation follows the base texture: every layer is a strip of the base's exact size, drawn
 /// frame for frame, and only the base's animation metadata is read.
 ///
-/// A base texture that cannot be read, or a bake that throws, resolves as the missing texture. A palette column
-/// that cannot be resolved leaves the art flattened but uncolored. A layer that cannot be read, or of any other
-/// size, is left out. Each of these failures is logged.
+/// A base texture that cannot be read, or a bake that throws, resolves as the missing texture. A layer that cannot
+/// be read, or of any other size, is left out. Each of these failures is logged.
 @SideOnly(Side.CLIENT)
 final class PaletteAtlasSprite extends TextureAtlasSprite {
 
@@ -42,21 +41,20 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
     private final String basePath;
     private final List<String> layerPaths;
     private final String overlayPath;
-    private final PaletteRef palette;
-    private boolean warnedPalette;
+    private final int[] entries;
     private boolean warnedLayer;
 
     /// A sprite named `name` baking the art at `basePath`, its numbered layers at `layerPaths` and, when
-    /// `overlayPath` is non-null, its overlay. Every path names an item texture when `isItem`, a block texture
-    /// otherwise.
+    /// `overlayPath` is non-null, its overlay, through the palette `entries`. Every path names an item texture when
+    /// `isItem`, a block texture otherwise.
     PaletteAtlasSprite(String name, boolean isItem, String basePath, List<String> layerPaths, String overlayPath,
-                       PaletteRef palette) {
+                       int[] entries) {
         super(name);
         this.isItem = isItem;
         this.basePath = basePath;
         this.layerPaths = layerPaths;
         this.overlayPath = overlayPath;
-        this.palette = palette;
+        this.entries = entries;
     }
 
     @Override
@@ -86,14 +84,11 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
         int width = base.image().getWidth();
         int height = base.image().getHeight();
         int[] pixels = base.image().getRGB(0, 0, width, height, null, 0, width);
-        int[] entries = PaletteSprites.paletteEntries(manager, palette);
-        if (entries != null) pixels = PaletteBaker.bake(PaletteBaker.index(pixels, width, height), entries);
-        else warnPalette();
+        pixels = PaletteBaker.bake(PaletteBaker.index(pixels, width, height), entries);
         for (String layerPath : layerPaths) {
             int[] layer = layerPixels(manager, layerPath, width, height);
             if (layer == null) continue;
-            if (entries != null) layer = PaletteBaker.bake(PaletteBaker.index(layer, width, height), entries);
-            PaletteBaker.compositeOver(pixels, layer);
+            PaletteBaker.compositeOver(pixels, PaletteBaker.bake(PaletteBaker.index(layer, width, height), entries));
         }
         if (overlayPath != null) {
             int[] overlay = layerPixels(manager, overlayPath, width, height);
@@ -152,13 +147,6 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
     private ResourceLocation texturePath(String path) {
         if (isItem) return ResourceUtil.getCompleteItemTextureResourceLocation(path);
         else return ResourceUtil.getCompleteBlockTextureResourceLocation(path);
-    }
-
-    private void warnPalette() {
-        if (warnedPalette) return;
-        warnedPalette = true;
-        MaterialLib.LOG.warn("Could not resolve column {} of {} for {}", palette.column(),
-            PaletteSprites.palettePng(palette), getIconName());
     }
 
     private void warnLayer(String message, Object... args) {

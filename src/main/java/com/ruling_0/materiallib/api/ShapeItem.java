@@ -231,7 +231,8 @@ public class ShapeItem extends Item implements BackedShape {
         return icons.isOverride(material.getIndex());
     }
 
-    /// Whether `material`'s icon was baked through its [PaletteRef], flattening the whole stack into one already
+    /// Whether `material`'s icon was baked through its palette ([PaletteRef]), flattening the whole stack into one
+    /// already
     /// colored layer. A caller compositing the icon itself skips its own tint the same way it does for
     /// [#hasOverrideIcon].
     @SideOnly(Side.CLIENT)

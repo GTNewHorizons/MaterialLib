@@ -22,10 +22,10 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 /// file at [#overridePath] reskins a single material, outranks every other source, and draws untinted
 /// ([#isOverride]). [#resolvePath] gives the full source order.
 ///
-/// On a palette-enabled instance, a material carrying [StandardProperties#PALETTE] whose art resolved from a texture
-/// set binds one baked sprite in place of the stack, with every layer flattened and recolored through the palette.
-/// It then reports a single layer and white from [#layerColor] ([#isPaletteBaked]). Override and per-material art
-/// are never baked.
+/// On a palette-enabled instance, a material with a palette png ([PaletteRef]) whose art resolved from a texture set
+/// binds one baked sprite in place of the stack, with every layer flattened and recolored through the palette. It
+/// then reports a single layer and white from [#layerColor] ([#isPaletteBaked]). Override and per-material art are
+/// never baked.
 final class ShapeIcons {
 
     /// The transparent placeholder icon path, present on both the item and block atlases.
@@ -45,11 +45,11 @@ final class ShapeIcons {
     /// numbered layer paths above it, and the `_OVERLAY` path or null when the art carries none.
     record StackPaths(String base, List<String> layers, String overlay) {}
 
-    /// Bakes one stack of art into a single palette-colored atlas sprite, or returns null to leave the material on
-    /// the tint path.
+    /// Bakes one stack of art into a single sprite colored by `material`'s palette, or returns null to leave the
+    /// material on the tint path.
     interface PaletteBinder {
 
-        IIcon bake(IIconRegister register, boolean isItem, StackPaths stack, PaletteRef palette);
+        IIcon bake(IIconRegister register, boolean isItem, StackPaths stack, Material material);
     }
 
     private final Int2ObjectMap<IIcon[]> layersByIndex = new Int2ObjectOpenHashMap<>();
@@ -71,8 +71,7 @@ final class ShapeIcons {
         this(isItem, exists, null, false);
     }
 
-    /// As [#ShapeIcons(boolean)], baking the art of a material carrying [StandardProperties#PALETTE] when
-    /// `paletteEnabled`.
+    /// As [#ShapeIcons(boolean)], baking the art of a material with a palette png when `paletteEnabled`.
     ShapeIcons(boolean isItem, boolean paletteEnabled) {
         this(isItem, path -> textureExists(path, isItem), null, paletteEnabled);
     }
@@ -109,7 +108,6 @@ final class ShapeIcons {
         if (paletteBinder == null && paletteEnabled) paletteBinder = PaletteSprites::bake;
         bindPlaceholder(register);
         List<String> unbound = null;
-        List<String> unpaletted = null;
         int generating = 0;
         for (Material material : materials) {
             boolean marker = isMarker(material);
@@ -128,23 +126,17 @@ final class ShapeIcons {
             if (path.startsWith(OVERRIDE_ROOT)) {
                 overrideIndices.add(index);
             }
-            else if (!Objects.equals(path, perMaterial)) {
-                PaletteRef palette = material.getProperty(StandardProperties.PALETTE);
-                if (paletteBinder != null && palette != null) {
-                    IIcon baked = paletteBinder.bake(register, isItem, stack, palette);
-                    if (baked != null) {
-                        layersByIndex.put(index, new IIcon[] { baked });
-                        paletteIndices.add(index);
-                        continue;
-                    }
-                    if (unpaletted == null) unpaletted = new ObjectArrayList<>();
-                    unpaletted.add(material.getKey());
+            else if (paletteBinder != null && !Objects.equals(path, perMaterial)) {
+                IIcon baked = paletteBinder.bake(register, isItem, stack, material);
+                if (baked != null) {
+                    layersByIndex.put(index, new IIcon[] { baked });
+                    paletteIndices.add(index);
+                    continue;
                 }
             }
             layersByIndex.put(index, registerStack(register, index, stack));
         }
         warnUnbound(unbound, generating, shapeNameCandidates);
-        warnUnbaked(unpaletted, generating);
     }
 
     /// Binds only the transparent placeholder, dropping any per-material stacks. Every lookup then resolves it.
@@ -167,13 +159,6 @@ final class ShapeIcons {
         int examples = Math.min(unbound.size(), 5);
         MaterialLib.LOG.warn("No {} icon resolved under {} for {}/{} materials (e.g. {})", isItem ? "item" : "block",
             shapeNameCandidates, unbound.size(), total, String.join(", ", unbound.subList(0, examples)));
-    }
-
-    private void warnUnbaked(List<String> unpaletted, int total) {
-        if (unpaletted == null) return;
-        int examples = Math.min(unpaletted.size(), 5);
-        MaterialLib.LOG.warn("No palette png resolved for {}/{} {} materials (e.g. {})", unpaletted.size(), total,
-            isItem ? "item" : "block", String.join(", ", unpaletted.subList(0, examples)));
     }
 
     /// The first layer's icon for a material index, or the empty placeholder if none resolved.
@@ -204,7 +189,7 @@ final class ShapeIcons {
         return overrideIndices.contains(index);
     }
 
-    /// Whether the icon bound for a material index was baked through the material's [PaletteRef].
+    /// Whether the icon bound for a material index was baked through the material's palette ([PaletteRef]).
     boolean isPaletteBaked(int index) {
         return paletteIndices.contains(index);
     }

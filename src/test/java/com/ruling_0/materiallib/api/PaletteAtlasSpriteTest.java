@@ -42,7 +42,7 @@ class PaletteAtlasSpriteTest {
     private static final String BASE = "testmod:materials/anim/ingot";
     private static final String LAYER = BASE + ShapeIcons.LAYER_SUFFIX + 1;
     private static final String OVERLAY = BASE + ShapeIcons.OVERLAY_SUFFIX;
-    private static final PaletteRef PALETTE = new PaletteRef("testmod", "anim", 0);
+    private static final int[] PALETTE = { RED, GREEN };
 
     /// Two 1x1 frames stacked into a 1x2 strip.
     private static final AnimationMetadataSection TWO_FRAMES = new AnimationMetadataSection(List.of(), 1, 1, 20);
@@ -51,10 +51,8 @@ class PaletteAtlasSpriteTest {
     private final PngResources resources = new PngResources();
 
     @BeforeEach
-    void serveBaseAndPalette() throws IOException {
-        PaletteSprites.clearCache();
+    void serveBase() throws IOException {
         resources.put(itemPng(BASE), 1, 2, new int[] { WHITE, GRAY }, TWO_FRAMES);
-        resources.put(PaletteSprites.palettePng(PALETTE), 1, 2, new int[] { RED, GREEN }, null);
     }
 
     /// The base's two shades take the palette's two entries. A numbered layer marking only the second frame is

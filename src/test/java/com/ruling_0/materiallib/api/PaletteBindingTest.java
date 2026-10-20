@@ -16,12 +16,10 @@ import net.minecraft.util.IIcon;
 
 import org.junit.jupiter.api.Test;
 
-/// Pins which texture source [ShapeIcons] bakes through a [PaletteRef], the art it hands the baker, and the shape
-/// and color of the stack a baked material ends up with. The baker is injected, so the whole classification runs
-/// headless.
+/// Pins which texture source [ShapeIcons] offers to the palette baker, the art it hands it, and the shape and color
+/// of the stack a material ends up with whether or not it has a palette png. The baker is injected, so the whole
+/// classification runs headless.
 class PaletteBindingTest {
-
-    private static final PaletteRef METALS = new PaletteRef("testmod", "metals", 2);
 
     private static final int TINT = 0xFFFFCC00;
 
@@ -40,7 +38,7 @@ class PaletteBindingTest {
     /// leaving no overlay layer and nothing for a tint to multiply.
     @Test
     void textureSetArtBakesIntoASingleUntintedLayer() {
-        Material material = declareMaterial("Testiron", METALS);
+        Material material = declareMaterial("Testiron");
         registry.resolve();
         String base = setA.iconPath("gear");
         String layer = base + ShapeIcons.LAYER_SUFFIX + 1;
@@ -52,37 +50,19 @@ class PaletteBindingTest {
 
         assertTrue(icons.isPaletteBaked(index));
         assertEquals(1, icons.layerCount(index));
-        assertSame(register.registered.get(METALS.bakedIconName(base)), icons.get(index));
+        assertSame(register.registered.get(PaletteRef.of(material).bakedIconName(base)), icons.get(index));
         assertFalse(icons.isOverlayLayer(index, 0));
         assertEquals(0xFFFFFFFF, icons.layerColor(material, 0));
 
         assertEquals(1, binder.calls.size());
-        assertEquals(new BakeCall(true, new ShapeIcons.StackPaths(base, List.of(layer), overlay), METALS),
+        assertEquals(new BakeCall(true, new ShapeIcons.StackPaths(base, List.of(layer), overlay), material),
             binder.calls.get(0));
-    }
-
-    /// A material setting no palette never reaches the baker, even on a palette-enabled instance.
-    @Test
-    void aMaterialWithoutAPaletteNeverReachesTheBaker() {
-        Material material = declareMaterialWithoutPalette("Testiron");
-        registry.resolve();
-        String base = setA.iconPath("gear");
-        int index = material.getIndex();
-
-        ShapeIcons icons = new ShapeIcons(true, Set.of(base)::contains, binder);
-        icons.bind(register, new Material[] { material }, "gear");
-
-        assertTrue(binder.calls.isEmpty());
-        assertFalse(icons.isPaletteBaked(index));
-        assertEquals(1, icons.layerCount(index));
-        assertSame(register.registered.get(base), icons.get(index));
-        assertEquals(TINT, icons.layerColor(material, 0));
     }
 
     /// A resource-pack override outranks a palette and never reaches the baker, so its art draws as authored.
     @Test
     void aResourcePackOverrideOutranksThePalette() {
-        Material material = declareMaterial("Testiron", METALS);
+        Material material = declareMaterial("Testiron");
         registry.resolve();
         int index = material.getIndex();
 
@@ -98,7 +78,7 @@ class PaletteBindingTest {
     /// A per-material icon path outranks a palette, never reaches the baker, and keeps the material's tint.
     @Test
     void aPerMaterialIconPathOutranksThePalette() {
-        Material material = declareMaterial("Testiron", METALS);
+        Material material = declareMaterial("Testiron");
         registry.resolve();
         String perMaterial = "testmod:custom/iron_gear";
         int index = material.getIndex();
@@ -112,10 +92,10 @@ class PaletteBindingTest {
         assertEquals(TINT, icons.layerColor(material, 0));
     }
 
-    /// A baker that declines -- the palette png is missing -- leaves the material on the full tinted stack.
+    /// A material without a palette png, which the baker declines, keeps the full tinted stack.
     @Test
-    void aDeclinedBakeFallsBackToTheTintedStack() {
-        Material material = declareMaterial("Testiron", METALS);
+    void aMaterialWithoutAPalettePngKeepsTheTintedStack() {
+        Material material = declareMaterial("Testiron");
         registry.resolve();
         String base = setA.iconPath("gear");
         String layer = base + ShapeIcons.LAYER_SUFFIX + 1;
@@ -135,10 +115,10 @@ class PaletteBindingTest {
         assertEquals(TINT, icons.layerColor(material, 0));
     }
 
-    /// A palette-disabled instance never reads the property.
+    /// A palette-disabled instance never offers art to a baker.
     @Test
-    void aPaletteDisabledInstanceIgnoresTheProperty() {
-        Material material = declareMaterial("Testiron", METALS);
+    void aPaletteDisabledInstanceKeepsTheTintedStack() {
+        Material material = declareMaterial("Testiron");
         registry.resolve();
         String base = setA.iconPath("gear");
         int index = material.getIndex();
@@ -154,7 +134,7 @@ class PaletteBindingTest {
     /// The deferred placeholder bind drops the baked mark along with the stacks it replaces.
     @Test
     void bindingThePlaceholderClearsTheBakedMark() {
-        Material material = declareMaterial("Testiron", METALS);
+        Material material = declareMaterial("Testiron");
         registry.resolve();
         String base = setA.iconPath("gear");
         int index = material.getIndex();
@@ -169,14 +149,8 @@ class PaletteBindingTest {
         assertSame(register.registered.get(ShapeIcons.EMPTY_ICON), icons.get(index));
     }
 
-    private Material declareMaterial(String name, PaletteRef palette) {
-        return declare(name, Map.of(StandardProperties.TEXTURE_SET, setA, StandardProperties.TINT, TINT,
-            StandardProperties.PALETTE, palette));
-    }
-
-    private Material declareMaterialWithoutPalette(String name) {
-        return declare(name,
-            Map.of(StandardProperties.TEXTURE_SET, setA, StandardProperties.TINT, TINT));
+    private Material declareMaterial(String name) {
+        return declare(name, Map.of(StandardProperties.TEXTURE_SET, setA, StandardProperties.TINT, TINT));
     }
 
     private Material declare(String name, Map<Property<?>, Object> properties) {
@@ -185,7 +159,7 @@ class PaletteBindingTest {
         return material;
     }
 
-    private record BakeCall(boolean isItem, ShapeIcons.StackPaths stack, PaletteRef palette) {}
+    private record BakeCall(boolean isItem, ShapeIcons.StackPaths stack, Material material) {}
 
     /// A [ShapeIcons.PaletteBinder] recording what it was handed, standing in for the client atlas. While `bakes`
     /// it hands back the icon a real bake would put on the atlas under [PaletteRef#bakedIconName]; otherwise it
@@ -196,9 +170,9 @@ class PaletteBindingTest {
         private boolean bakes = true;
 
         @Override
-        public IIcon bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, PaletteRef palette) {
-            calls.add(new BakeCall(isItem, stack, palette));
-            return bakes ? register.registerIcon(palette.bakedIconName(stack.base())) : null;
+        public IIcon bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, Material material) {
+            calls.add(new BakeCall(isItem, stack, material));
+            return bakes ? register.registerIcon(PaletteRef.of(material).bakedIconName(stack.base())) : null;
         }
     }
 }

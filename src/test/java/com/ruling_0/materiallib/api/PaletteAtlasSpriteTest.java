@@ -65,7 +65,7 @@ class PaletteAtlasSpriteTest {
         PaletteAtlasSprite sprite = new PaletteAtlasSprite("materiallib:mlbaked/anim", true, BASE, List.of(LAYER),
             OVERLAY, PALETTE);
 
-        PaletteAtlasSprite.Art art = sprite.bake(resources);
+        PaletteAtlasSprite.Art art = sprite.bake(resources, new PaletteArt());
 
         assertSame(TWO_FRAMES, art.animation());
         assertArrayEquals(new int[] { BLUE, RED }, art.image().getRGB(0, 0, 1, 2, null, 0, 1));
@@ -78,7 +78,7 @@ class PaletteAtlasSpriteTest {
         PaletteAtlasSprite sprite = new PaletteAtlasSprite("materiallib:mlbaked/anim", true, BASE, List.of(LAYER), null,
             PALETTE);
 
-        PaletteAtlasSprite.Art art = sprite.bake(resources);
+        PaletteAtlasSprite.Art art = sprite.bake(resources, new PaletteArt());
 
         assertArrayEquals(new int[] { RED, GREEN }, art.image().getRGB(0, 0, 1, 2, null, 0, 1));
     }

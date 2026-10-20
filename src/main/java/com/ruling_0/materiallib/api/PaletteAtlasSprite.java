@@ -2,14 +2,10 @@ package com.ruling_0.materiallib.api;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
-
-import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.IResource;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.data.AnimationMetadataSection;
 import net.minecraft.util.ResourceLocation;
@@ -65,7 +61,7 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
     @Override
     public boolean load(IResourceManager manager, ResourceLocation location) {
         try {
-            Art art = bake(manager);
+            Art art = bake(manager, PaletteSprites.art());
             if (art == null) return true;
             loadSprite(frameLadder(art.image(), Minecraft.getMinecraft().gameSettings.mipmapLevels), art.animation(),
                 !isItem && Minecraft.getMinecraft().gameSettings.anisotropicFiltering > 1);
@@ -77,22 +73,27 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
         }
     }
 
-    /// The flattened strip with the base texture's animation, or null when the base texture cannot be read.
-    Art bake(IResourceManager manager) {
-        Art base = readBase(manager);
-        if (base == null) return null;
-        int width = base.image().getWidth();
-        int height = base.image().getHeight();
-        int[] pixels = base.image().getRGB(0, 0, width, height, null, 0, width);
-        pixels = PaletteBaker.bake(PaletteBaker.index(pixels, width, height), entries);
+    /// The flattened strip with the base texture's animation, or null when the base texture cannot be read. Art is
+    /// read through `art`, which shares each texture among every sprite baking it.
+    Art bake(IResourceManager manager, PaletteArt art) {
+        PaletteArt.Texture base;
+        try {
+            base = art.get(manager, texturePath(basePath));
+        }
+        catch (IOException e) {
+            MaterialLib.LOG.error("Could not read base texture {} of {}", basePath, getIconName(), e);
+            return null;
+        }
+        int width = base.width();
+        int height = base.height();
+        int[] pixels = PaletteBaker.bake(base.indexed(), entries);
         for (String layerPath : layerPaths) {
-            int[] layer = layerPixels(manager, layerPath, width, height);
-            if (layer == null) continue;
-            PaletteBaker.compositeOver(pixels, PaletteBaker.bake(PaletteBaker.index(layer, width, height), entries));
+            PaletteArt.Texture layer = layer(manager, art, layerPath, width, height);
+            if (layer != null) PaletteBaker.compositeOver(pixels, PaletteBaker.bake(layer.indexed(), entries));
         }
         if (overlayPath != null) {
-            int[] overlay = layerPixels(manager, overlayPath, width, height);
-            if (overlay != null) PaletteBaker.compositeOver(pixels, overlay);
+            PaletteArt.Texture overlay = layer(manager, art, overlayPath, width, height);
+            if (overlay != null) PaletteBaker.compositeOver(pixels, overlay.argb());
         }
         BufferedImage composited = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         composited.setRGB(0, 0, width, height, pixels, 0, width);
@@ -107,41 +108,22 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
         return levels;
     }
 
-    private Art readBase(IResourceManager manager) {
+    /// The art at `path`, or null when that art is unreadable or is not `width` x `height`.
+    private PaletteArt.Texture layer(IResourceManager manager, PaletteArt art, String path, int width, int height) {
+        PaletteArt.Texture layer;
         try {
-            IResource resource = manager.getResource(texturePath(basePath));
-            return new Art(readImage(resource), (AnimationMetadataSection) resource.getMetadata("animation"));
-        }
-        catch (IOException e) {
-            MaterialLib.LOG.error("Could not read base texture {} of {}", basePath, getIconName(), e);
-            return null;
-        }
-    }
-
-    /// The pixels of the art at `path`, or null when that art is unreadable or is not `width` x `height`.
-    private int[] layerPixels(IResourceManager manager, String path, int width, int height) {
-        BufferedImage image;
-        try {
-            image = readImage(manager.getResource(texturePath(path)));
+            layer = art.get(manager, texturePath(path));
         }
         catch (IOException e) {
             warnLayer("Could not read layer {} of {}", path, getIconName(), e);
             return null;
         }
-        if (image.getWidth() != width || image.getHeight() != height) {
-            warnLayer("{} is {}x{} but the base of {} is {}x{}", path, image.getWidth(), image.getHeight(),
-                getIconName(), width, height);
+        if (layer.width() != width || layer.height() != height) {
+            warnLayer("{} is {}x{} but the base of {} is {}x{}", path, layer.width(), layer.height(), getIconName(),
+                width, height);
             return null;
         }
-        return image.getRGB(0, 0, width, height, null, 0, width);
-    }
-
-    private static BufferedImage readImage(IResource resource) throws IOException {
-        try (InputStream stream = resource.getInputStream()) {
-            BufferedImage image = ImageIO.read(stream);
-            if (image == null) throw new IOException("no image reader accepted the file");
-            return image;
-        }
+        return layer;
     }
 
     private ResourceLocation texturePath(String path) {

@@ -26,8 +26,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 /// Reads the palette pngs behind [PaletteRef]s and puts sprites baked against them on an atlas through [#bake].
 ///
 /// A palette png is read the first time a shape of its material binds on an atlas, and dropped when that atlas
-/// finishes stitching. Shapes bind in `registerIcons`, which Forge runs before `TextureStitchEvent.Pre`, so the
-/// palettes are dropped on `TextureStitchEvent.Post`.
+/// finishes stitching, as is the art its sprites baked from. Shapes bind in `registerIcons`, which Forge runs before
+/// `TextureStitchEvent.Pre`, so both are dropped on `TextureStitchEvent.Post`.
 @SideOnly(Side.CLIENT)
 public final class PaletteSprites {
 
@@ -35,9 +35,12 @@ public final class PaletteSprites {
 
     private static final Map<PaletteRef, int[]> ENTRIES = new ConcurrentHashMap<>();
 
+    private static PaletteArt art = new PaletteArt();
+
     @SubscribeEvent
     public void onTextureStitched(TextureStitchEvent.Post event) {
         ENTRIES.clear();
+        art = new PaletteArt();
     }
 
     /// The atlas sprite baking `stack`'s art through `material`'s palette, or null when `register` is not a texture
@@ -56,6 +59,11 @@ public final class PaletteSprites {
             entries);
         map.setTextureEntry(name, sprite);
         return sprite;
+    }
+
+    /// The art read for the sprites baking during the current stitch.
+    static PaletteArt art() {
+        return art;
     }
 
     /// The entries of `palette`'s png, top to bottom, or null when the png is missing or unreadable or its first

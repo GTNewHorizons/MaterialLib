@@ -45,7 +45,7 @@ public interface Shape {
     /// Sets a property value on this shape, for the mod that declared it, and returns the shape so calls chain.
     /// Only before shapes resolve.
     ///
-    /// This is the counterpart of the shape builders' `property` for a shape registered as a subclass instead
+    /// This is the counterpart of [ShapeBuilder#property] for a shape registered as a subclass instead
     /// (see [MaterialLibAPI#registerItemShape]). Changing a shape another mod declared goes through
     /// [MaterialLibAPI#editShape]; see [ShapeEdit].
     default <T> Shape setProperty(Property<T> property, T value) {

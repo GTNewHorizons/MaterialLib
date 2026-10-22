@@ -27,7 +27,7 @@ public final class StandardProperties {
     public static final Property<String> LOCALIZATION_KEY = Property.of(MaterialLib.MODID, "localizationKey");
 
     /// Read from a shape rather than a material: the translation key of the shape's display-name format, such as
-    /// `%s Gear`, set through the shape builders' `displayNameKey`. Without a translation that is a valid format
+    /// `%s Gear`, set through [ShapeBuilder#displayNameKey]. Without a translation that is a valid format
     /// string, the name is the material name followed by the capitalized shape name. Null when unset.
     public static final Property<String> DISPLAY_NAME_FORMAT_KEY = Property.of(MaterialLib.MODID,
         "displayNameFormatKey");

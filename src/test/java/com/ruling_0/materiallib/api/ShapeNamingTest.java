@@ -27,7 +27,7 @@ class ShapeNamingTest {
     @Test
     void aDeclaredDisplayNameKeyReplacesTheMaterialNameKey() {
         Material iron = registry.newMaterial("examplemod", "TestIron", texture)
-            .setProperty(StandardProperties.LOCALIZATION_KEY, "Material.testiron")
+            .setLocalizationKey("Material.testiron")
             .build();
         registry.resolve();
 

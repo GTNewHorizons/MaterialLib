@@ -93,12 +93,18 @@ public final class Material {
         return name;
     }
 
-    /// The translation of the material's [StandardProperties#DISPLAY_NAME_KEY] (by default
+    /// The translation of the material's [StandardProperties#LOCALIZATION_KEY] (by default
     /// `material.<modid>.<name>`), or the registry name when that key has no translation.
     public String getLocalizedName() {
-        if (canonical != this) return canonical.getLocalizedName();
-        String key = ShapeNaming.materialNameKey(this);
+        String key = this.getLocalizationKey();
         return StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : name;
+    }
+
+    /// The translation key of the material, from [StandardProperties#LOCALIZATION_KEY]. Returns
+    /// `material.<modid>.<name>` if the property is null.
+    public String getLocalizationKey() {
+        if (canonical != this) return canonical.getLocalizationKey();
+        return ShapeNaming.materialNameKey(this);
     }
 
     /// The registry key, `modid:name`.

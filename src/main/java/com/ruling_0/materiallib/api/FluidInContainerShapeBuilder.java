@@ -1,33 +1,25 @@
 package com.ruling_0.materiallib.api;
 
-import java.util.Map;
 import java.util.Objects;
 
 import net.minecraft.item.ItemStack;
 
 import net.minecraftforge.fluids.FluidContainerRegistry;
 
-import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
-
 /// Builds and registers a simple fluid-in-container [Shape] backed by a [ShapeFluidInContainer]. Obtained from
 /// [MaterialLibAPI#newFluidInContainerShape] and finished with [#build] inside the owning mod's
 /// [MaterialRegistrationEvent] handler. Mods needing custom behavior subclass [ShapeFluidInContainer] instead
 /// and register through [MaterialLibAPI#registerFluidInContainerShape].
-public final class FluidInContainerShapeBuilder {
+public final class FluidInContainerShapeBuilder extends ShapeBuilder<FluidInContainerShapeBuilder> {
 
-    private final String modid;
-    private final String name;
     private Shape fluidShape;
     private EmptyContainer emptyContainer;
     private int volume = FluidContainerRegistry.BUCKET_VOLUME;
     private String[] oreDicts;
     private String emptyIconPath;
-    private final Map<Property<?>, Object> properties = new Reference2ObjectLinkedOpenHashMap<>();
-    private boolean built;
 
     FluidInContainerShapeBuilder(String modid, String name) {
-        this.modid = modid;
-        this.name = name;
+        super(modid, name, "Fluid container shape");
     }
 
     /// Sets the fluid this container holds; required. Pass the shape returned by [MaterialLibAPI#newFluidShape].
@@ -66,14 +58,6 @@ public final class FluidInContainerShapeBuilder {
         return this;
     }
 
-    /// Sets the shape's [StandardProperties#DISPLAY_NAME_FORMAT_KEY], the translation key of the format applied to the
-    /// material name. For example, a key translating to `%s Bucket` gives `Iron Bucket`. Without a translation, the
-    /// name is the material name followed by the capitalized shape name. A lang file may override individual
-    /// names; see [ShapeNaming].
-    public FluidInContainerShapeBuilder displayNameKey(String key) {
-        return property(StandardProperties.DISPLAY_NAME_FORMAT_KEY, key);
-    }
-
     /// Sets the untinted base icon path drawn under the fluid fill (e.g. `"gregtech:items/cell_base"`), in place of
     /// this shape's default; see [ShapeFluidInContainer].
     public FluidInContainerShapeBuilder emptyIcon(String path) {
@@ -81,29 +65,16 @@ public final class FluidInContainerShapeBuilder {
         return this;
     }
 
-    /// Sets a property value on the shape. Values are read back through [Shape#getProperty] and may be altered
-    /// by another mod through [MaterialLibAPI#editShape].
-    public <T> FluidInContainerShapeBuilder property(Property<T> property, T value) {
-        ShapeProperties.requireSettable(property, value);
-        properties.put(property, value);
-        return this;
+    @Override
+    void validate() {
+        if (fluidShape == null) {
+            throw new IllegalStateException(label() + " needs a fluid; call fluid(...) before build()");
+        }
     }
 
-    /// Registers the shape and returns the shape to generate; see [ShapeRegistry#register]. Fails if called twice
-    /// or if no fluid was set.
-    public Shape build() {
-        if (built) {
-            throw new IllegalStateException("Fluid container shape " + Names.key(modid, name) + " was already built");
-        }
-        if (fluidShape == null) {
-            throw new IllegalStateException(
-                "Fluid container shape " + Names.key(modid, name) + " needs a fluid; call fluid(...) before build()");
-        }
-        built = true;
-        String[] prefixes = oreDicts != null ? oreDicts : new String[] { name };
-        ShapeFluidInContainer shape = new ShapeFluidInContainer(modid, name, fluidShape, emptyContainer, volume,
-            emptyIconPath, prefixes);
-        shape.properties().setAll(shape, properties);
-        return ShapeRegistry.instance().register(shape);
+    @Override
+    ServedShape create() {
+        return new ShapeFluidInContainer(modid, name, fluidShape, emptyContainer, volume, emptyIconPath,
+            prefixesOrName(oreDicts));
     }
 }

@@ -1,35 +1,19 @@
 package com.ruling_0.materiallib.api;
 
-import java.util.Map;
 import java.util.Objects;
-
-import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
 
 /// Builds and registers a simple fluid [Shape] backed by a [ShapeFluid]. Obtained from [MaterialLibAPI#newFluidShape]
 /// and finished with [#build], which must be called inside the owning mod's [MaterialRegistrationEvent] handler.
 /// Mods needing custom fluid behavior subclass [ShapeFluid] instead and register through
 /// [MaterialLibAPI#registerFluidShape].
-public final class FluidShapeBuilder {
+public final class FluidShapeBuilder extends ShapeBuilder<FluidShapeBuilder> {
 
-    private final String modid;
-    private final String name;
     private FluidNamer namer;
     private FluidConfigurer configurer;
     private IconPather iconPather;
-    private final Map<Property<?>, Object> properties = new Reference2ObjectLinkedOpenHashMap<>();
-    private boolean built;
 
     FluidShapeBuilder(String modid, String name) {
-        this.modid = modid;
-        this.name = name;
-    }
-
-    /// Sets the shape's [StandardProperties#DISPLAY_NAME_FORMAT_KEY], the translation key of the format applied to the
-    /// material name. For example, a key translating to `Molten %s` gives `Molten Iron`. Without a translation, the
-    /// name is the material name followed by the capitalized shape name. A lang file may override individual
-    /// names; see [ShapeNaming].
-    public FluidShapeBuilder displayNameKey(String key) {
-        return property(StandardProperties.DISPLAY_NAME_FORMAT_KEY, key);
+        super(modid, name, "Fluid shape");
     }
 
     /// Sets the function computing each served material's Forge fluid name, in place of the default
@@ -58,22 +42,8 @@ public final class FluidShapeBuilder {
         return iconPath((shape, material) -> path);
     }
 
-    /// Sets a property value on the shape. Values are read back through [Shape#getProperty] and may be altered
-    /// by another mod through [MaterialLibAPI#editShape].
-    public <T> FluidShapeBuilder property(Property<T> property, T value) {
-        ShapeProperties.requireSettable(property, value);
-        properties.put(property, value);
-        return this;
-    }
-
-    /// Registers the shape and returns the shape to generate; see [ShapeRegistry#register]. Fails if called twice.
-    public Shape build() {
-        if (built) {
-            throw new IllegalStateException("Fluid shape " + Names.key(modid, name) + " was already built");
-        }
-        built = true;
-        ShapeFluid shape = new ShapeFluid(modid, name, namer, configurer, iconPather);
-        shape.properties().setAll(shape, properties);
-        return ShapeRegistry.instance().register(shape);
+    @Override
+    ServedShape create() {
+        return new ShapeFluid(modid, name, namer, configurer, iconPather);
     }
 }

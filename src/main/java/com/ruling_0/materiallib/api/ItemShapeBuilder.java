@@ -1,26 +1,18 @@
 package com.ruling_0.materiallib.api;
 
-import java.util.Map;
 import java.util.Objects;
-
-import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
 
 /// Builds and registers a simple item [Shape] backed by a [ShapeItem]. Obtained from
 /// [MaterialLibAPI#newItemShape] and finished with [#build], which must be called inside the owning mod's
 /// [MaterialRegistrationEvent] handler. Mods needing custom item behavior subclass [ShapeItem] instead and
 /// register through [MaterialLibAPI#registerItemShape].
-public final class ItemShapeBuilder {
+public final class ItemShapeBuilder extends ShapeBuilder<ItemShapeBuilder> {
 
-    private final String modid;
-    private final String name;
     private String[] oreDicts;
     private String iconName;
-    private final Map<Property<?>, Object> properties = new Reference2ObjectLinkedOpenHashMap<>();
-    private boolean built;
 
     ItemShapeBuilder(String modid, String name) {
-        this.modid = modid;
-        this.name = name;
+        super(modid, name, "Item shape");
     }
 
     /// Sets the oredict prefixes; the material name is appended to each (e.g. `gear` -> `gearIron`). Pass several
@@ -31,14 +23,6 @@ public final class ItemShapeBuilder {
         return this;
     }
 
-    /// Sets the shape's [StandardProperties#DISPLAY_NAME_FORMAT_KEY], the translation key of the format applied to the
-    /// material name. For example, a key translating to `%s Gear` gives `Iron Gear`. Without a translation, the
-    /// name is the material name followed by the capitalized shape name. A lang file may override individual
-    /// names; see [ShapeNaming].
-    public ItemShapeBuilder displayNameKey(String key) {
-        return property(StandardProperties.DISPLAY_NAME_FORMAT_KEY, key);
-    }
-
     /// Sets the name this shape's textures are filed under inside each texture set, defaulting to the shape name,
     /// so several shapes can share one art file (e.g. every wire gauge drawing `wire.png`). Under shape
     /// unification the owning declaration's icon name wins; see [ShapeUnification].
@@ -47,27 +31,12 @@ public final class ItemShapeBuilder {
         return this;
     }
 
-    /// Sets a property value on the shape. Values are read back through [Shape#getProperty] and may be altered
-    /// by another mod through [MaterialLibAPI#editShape].
-    public <T> ItemShapeBuilder property(Property<T> property, T value) {
-        ShapeProperties.requireSettable(property, value);
-        properties.put(property, value);
-        return this;
-    }
-
-    /// Registers the shape and returns the shape to generate; see [ShapeRegistry#register]. Fails if called
-    /// twice.
-    public Shape build() {
-        if (built) {
-            throw new IllegalStateException("Item shape " + Names.key(modid, name) + " was already built");
-        }
-        built = true;
-        String[] prefixes = oreDicts != null ? oreDicts : new String[] { name };
-        ShapeItem shape = new ShapeItem(modid, name, prefixes);
+    @Override
+    ServedShape create() {
+        ShapeItem shape = new ShapeItem(modid, name, prefixesOrName(oreDicts));
         if (iconName != null) {
             shape.setIconName(iconName);
         }
-        shape.properties().setAll(shape, properties);
-        return ShapeRegistry.instance().register(shape);
+        return shape;
     }
 }

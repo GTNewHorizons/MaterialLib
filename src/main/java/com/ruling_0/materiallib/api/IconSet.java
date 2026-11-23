@@ -11,8 +11,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 /// Per-material icons for art a mod draws in its own renderers, such as tool parts drawn by the material read from a
 /// stack's NBT, or an extra face of a block the mod already owns.
 ///
-/// An icon set resolves icons the way a shape does (resource-pack overrides, texture sets and their fallbacks,
-/// unification alternatives, layer stacks), but backs no item or block. Its name is the `<shape>` its art is filed
+/// An icon set resolves icons the way a shape does (resource-pack overrides, texture sets and their fallbacks, other
+/// declarations of the material, layer stacks), but backs no item or block. Its name is the `<shape>` its art is filed
 /// under in each texture set, as in `materials/<set>/<shape>.png`. A material with no such art anywhere in its
 /// texture-set chain binds the transparent placeholder.
 ///

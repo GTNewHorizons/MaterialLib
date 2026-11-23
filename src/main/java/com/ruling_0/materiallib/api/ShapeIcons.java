@@ -228,7 +228,7 @@ final class ShapeIcons {
     /// file `exists` accepts, or null when every source misses. Sources run in order: the resource-pack override
     /// ([#overridePath]), `perMaterialIconPath` when non-null, [StandardProperties#TEXTURE_SET],
     /// [StandardProperties#FALLBACK_TEXTURE_SETS] in list order, then the texture set and fallbacks of each
-    /// unification alternative. Within one source, earlier candidate names win. Source-major order keeps a
+    /// other declaration of the material. Within one source, earlier candidate names win. Source-major order keeps a
     /// material's own plain-shape texture ahead of a lower source's variant texture.
     static String resolvePath(Material material, List<String> shapeNameCandidates,
                               Function<Material, String> perMaterialIconPath, Predicate<String> exists) {

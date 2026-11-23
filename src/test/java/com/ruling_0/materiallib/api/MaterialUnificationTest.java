@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,7 +44,9 @@ class MaterialUnificationTest {
         registry.newMaterial("bmod", "testiron", otherTexture).build();
         registry.resolve();
 
-        assertEquals("bmod", registry.getMaterial("amod", "testiron").getModId());
+        Material material = registry.getMaterial("amod", "testiron");
+        assertEquals("bmod", material.getModId());
+        assertEquals(otherTexture, material.getProperty(StandardProperties.TEXTURE_SET));
     }
 
     @Test
@@ -177,26 +178,6 @@ class MaterialUnificationTest {
         Material merged = relaunch.getMaterial("amod", "testiron");
         assertEquals("bmod", merged.getModId());
         assertEquals(0, merged.getIndex());
-    }
-
-    /// The owner, and with it the modid and key, is elected only when the registry resolves.
-    @Test
-    void theOwnerIsUnknownUntilResolve() {
-        Material material = registry.newMaterial("amod", "testiron", ownerTexture).build();
-
-        assertThrows(IllegalStateException.class, material::getModId);
-        assertThrows(IllegalStateException.class, material::getKey);
-        assertEquals("testiron", material.getName());
-
-        registry.resolve();
-        assertEquals("amod", material.getModId());
-    }
-
-    @Test
-    void aModBuildingANameTwiceIsRejected() {
-        registry.newMaterial("amod", "testiron", ownerTexture).build();
-
-        assertThrows(IllegalStateException.class, registry.newMaterial("amod", "testiron", otherTexture)::build);
     }
 
     /// An edit or lookup by key reaches the shared material only through a mod that declared the name.

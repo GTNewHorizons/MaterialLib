@@ -27,11 +27,11 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 /// resolution.
 ///
 /// Two mods may declare a material with the same name without coordinating. Every [MaterialBuilder#build] of one name
-/// returns the same material, so the mods' references compare equal with `==`. At resolve, the declarations unify into
-/// that material, carrying the union of their shapes, families, tooltip lines, and properties and keeping the owner's
-/// value for a property both declare. The owner is the mod recorded in the persisted owner store when it declares the
-/// name this session, else the alphabetically-first declaring modid. It supplies the modid, key, texture set, and lang
-/// key, so [#getModId], [#getKey] and [#getLocalizedName] are only available once the registry has elected it.
+/// returns the same material. At resolve, the declarations unify into that material, carrying the union of their
+/// shapes, families, tooltip lines, and properties and keeping the owner's value for a property both declare. The owner
+/// is the mod recorded in the persisted owner store when it declares the name this session, else the
+/// alphabetically-first declaring modid. It supplies the modid, key, texture set, and lang key. [#getModId], [#getKey]
+/// and [#getLocalizedName] are only available once the registry has elected it.
 ///
 /// A shape override ([MaterialBuilder#addShapeOverride(Shape, net.minecraft.item.Item)]) serves one shape of the
 /// material with a foreign item instead of one MaterialLib mints. A [MaterialEdit] override wins over every
@@ -267,7 +267,6 @@ public final class Material {
         declarations.add(declaration);
     }
 
-    /// Whether `modid` declared this material.
     boolean isDeclaredBy(String modid) {
         for (MaterialDeclaration declaration : declarations) {
             if (declaration.modid().equals(modid)) return true;
@@ -357,7 +356,7 @@ public final class Material {
     private void requireOwner() {
         if (modid == null) {
             throw new IllegalStateException("Material " + name +
-                " has no owner until the material registry resolves; read its modid and key from preInit onwards");
+                " has no owner until the material registry resolves. Mods depending on materiallib read its modid and key from their preInit onwards");
         }
     }
 

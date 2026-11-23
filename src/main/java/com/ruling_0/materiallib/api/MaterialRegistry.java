@@ -22,13 +22,11 @@ import it.unimi.dsi.fastutil.objects.ReferenceLinkedOpenHashSet;
 /// The broker holding every registered [Material] and [Family].
 ///
 /// The registry has two phases. During registration (inside [MaterialRegistrationEvent] handlers), mods register
-/// materials and families through the builders and queue cross-mod changes through [MaterialEdit] and
-/// [FamilyEdit]; key lookups return the registered objects, but their membership, shapes, and properties cannot
-/// be read yet, and neither can the bulk collection views. Each material name has one [Material], which every mod
-/// declaring the name receives. Once every handler has returned, [#resolve] elects each material's owner and folds its
-/// declarations into it, applies all queued edits in call order, derives family membership and
-/// per-material shape sets, and freezes the registry. From then on everything is readable and nothing can be
-/// registered or edited.
+/// materials and families through the builders and queue cross-mod changes through [MaterialEdit] and [FamilyEdit]; key
+/// lookups return the registered objects, but their membership, shapes, and properties cannot be read yet, and neither
+/// can the bulk collection views. Once every handler has returned, [#resolve] elects each material's owner and folds
+/// its declarations into it, applies all queued edits in call order, derives family membership and per-material shape
+/// sets, and freezes the registry. From then on everything is readable and nothing can be registered or edited.
 ///
 /// Indices are assigned deterministically at resolve: the post-unification material names sorted ascending take
 /// indices 0..n-1, so identical registered sets derive identical assignments.

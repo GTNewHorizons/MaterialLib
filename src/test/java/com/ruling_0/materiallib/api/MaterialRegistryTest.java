@@ -85,6 +85,8 @@ class MaterialRegistryTest {
         assertThrows(IllegalStateException.class, registry::getFamilies);
         assertThrows(IllegalStateException.class, material::getIndex);
         assertThrows(IllegalStateException.class, () -> registry.getMaterialByIndex(0));
+        assertTrue(assertThrows(IllegalStateException.class, material::getModId).getMessage().contains("TestIron"));
+        assertThrows(IllegalStateException.class, material::getKey);
     }
 
     @Test
@@ -107,6 +109,7 @@ class MaterialRegistryTest {
         Family family = registry.newFamily("testmod", "Alloys").addMaterial(material).build();
         registry.resolve();
 
+        assertTrue(family.getMaterials().contains(material));
         assertThrows(UnsupportedOperationException.class, () -> material.getShapes().add(gear));
         assertThrows(UnsupportedOperationException.class, () -> material.getFamilies().remove(family));
         assertThrows(UnsupportedOperationException.class, () -> family.getMaterials().remove(material));

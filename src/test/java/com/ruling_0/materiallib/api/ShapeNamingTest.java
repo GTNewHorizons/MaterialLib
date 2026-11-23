@@ -19,7 +19,6 @@ class ShapeNamingTest {
     @Test
     void materialNameKeyIsModidAndName() {
         Material iron = material("examplemod", "TestIron");
-        registry.resolve();
 
         assertEquals("material.examplemod.TestIron", ShapeNaming.materialNameKey(iron));
     }

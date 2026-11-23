@@ -72,7 +72,7 @@ final class ShapeProperties {
     }
 
     /// Copies every value the losing declaration sets and this one does not, keeping this shape's own value where
-    /// both set the property and logging a discarded value that differs. Mirrors [Material#mergeFrom]. `owner` and
+    /// both set the property and logging a discarded value that differs. Mirrors [Material#unify]. `owner` and
     /// `loserModid` name the shapes in that warning.
     void mergeFrom(Object owner, String loserModid, ShapeProperties loser) {
         for (Map.Entry<Property<?>, Object> entry : loser.properties.entrySet()) {

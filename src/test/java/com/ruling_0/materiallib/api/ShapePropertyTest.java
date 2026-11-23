@@ -42,7 +42,7 @@ class ShapePropertyTest {
     }
 
     /// The owner keeps its own value and adopts the ones only the merged-away declaration set, exactly as
-    /// [Material#mergeFrom] does for materials.
+    /// [Material#unify] does for materials.
     @Test
     void unificationKeepsTheOwnersValueAndAdoptsTheRest() {
         TestShape amod = register("amod", "gear");

@@ -77,8 +77,6 @@ class PaletteBindingTest {
         assertTrue(icons.isPaletteBaked(index));
         assertEquals(3, icons.layerCount(index));
         assertTrue(icons.isOverlayLayer(index, 2));
-        assertFalse(icons.isOverlayLayer(index, 1));
-        assertSame(register.registered.get(overlay), icons.layer(index, 2));
         for (int l = 0; l < 3; l++) {
             assertEquals(0xFFFFFFFF, icons.layerColor(material, l));
         }

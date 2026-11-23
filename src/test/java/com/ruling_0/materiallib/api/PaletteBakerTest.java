@@ -69,7 +69,6 @@ class PaletteBakerTest {
         PaletteBaker.Palette palette = palette(new int[] { 0xFFFFFFFF, RED }, new int[] { 0xFFFFFFFE, GREEN },
             new int[] { 0, BLUE }, new int[] { 0xFF808080, 0 });
 
-        assertEquals(3, palette.size());
         assertEquals(RED & 0xFFFFFF, palette.color(255));
         assertEquals(BLUE & 0xFFFFFF, palette.color(0));
         assertEquals(BLUE & 0xFFFFFF, palette.color(128));

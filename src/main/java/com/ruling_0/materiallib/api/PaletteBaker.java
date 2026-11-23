@@ -31,12 +31,10 @@ final class PaletteBaker {
 
         private final int[] colors;
         private final boolean[] indexed;
-        private final int size;
 
-        private Palette(int[] colors, boolean[] indexed, int size) {
+        private Palette(int[] colors, boolean[] indexed) {
             this.colors = colors;
             this.indexed = indexed;
-            this.size = size;
         }
 
         /// The `0xRRGGBB` color gray level `level` bakes to.
@@ -47,11 +45,6 @@ final class PaletteBaker {
         /// Whether some row's index pixel has gray level `level`.
         boolean indexes(int level) {
             return indexed[level];
-        }
-
-        /// The number of entries.
-        int size() {
-            return size;
         }
     }
 
@@ -89,7 +82,7 @@ final class PaletteBaker {
             indexed[level] = true;
             colors[level] = argb[row * width + 1] & 0xFFFFFF;
         }
-        return new Palette(colors, indexed, entries);
+        return new Palette(colors, indexed);
     }
 
     /// Recolors `art` through `palette`. Each pixel keeps the art's alpha, and a fully transparent pixel stays fully

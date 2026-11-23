@@ -13,11 +13,9 @@ import org.junit.jupiter.api.Test;
 class ShapeConsumersTest {
 
     private final ShapeConsumers consumers = new ShapeConsumers();
-    private final MaterialRegistry registry = new MaterialRegistry();
-    private final TextureSet texture = TextureSet.of("testmod", "shiny");
 
     private Material material(String name) {
-        return registry.newMaterial("testmod", name, texture).build();
+        return TestMaterials.resolved("testmod", name);
     }
 
     private static TestShape shape(String name, Material... materials) {

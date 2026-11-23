@@ -168,16 +168,16 @@ public final class MaterialBuilder {
         return this;
     }
 
-    /// Registers the material and returns it. Fails if a material with the same modid and name already exists or
-    /// the registry has already resolved.
+    /// Registers this declaration and returns the material every mod building this name receives. Fails if this modid
+    /// already declared the name or the registry has already resolved.
     public Material build() {
         if (built) {
             throw new IllegalStateException("Material " + Names.key(modid, name) + " was already built");
         }
         properties.put(StandardProperties.TEXTURE_SET, textureSet);
-        MaterialDeclaration declaration = new MaterialDeclaration(shapes, removedShapes, familyKeys, shapeOverrides);
-        Material material = new Material(registry, modid, name, properties, shapes, tooltipLines, declaration);
-        registry.register(material);
+        MaterialDeclaration declaration = new MaterialDeclaration(modid, properties, shapes, removedShapes, familyKeys,
+            tooltipLines, shapeOverrides);
+        Material material = registry.declare(name, declaration);
         for (String[] familyKey : familyKeys) {
             registry.enqueueAddToFamily(modid, name, familyKey[0], familyKey[1]);
         }

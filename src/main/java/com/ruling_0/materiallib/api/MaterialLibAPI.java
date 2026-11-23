@@ -199,8 +199,8 @@ public final class MaterialLibAPI {
         return ShapeRegistry.instance().editShape(modid, name);
     }
 
-    /// The material with the given key, or null if none exists. A key whose material unified onto another mod's
-    /// returns the unified material.
+    /// The material named `name`, or null unless `modid` declared it. Every declaring mod's key returns the same
+    /// material.
     public static Material getMaterial(String modid, String name) {
         return MaterialRegistry.instance().getMaterial(modid, name);
     }

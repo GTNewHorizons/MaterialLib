@@ -215,7 +215,7 @@ public final class ShapeRegistry {
         ItemStack stack = findStack(material, shape, amount);
         if (stack == null) {
             throw new IllegalArgumentException(
-                "Material " + material.canonical().getKey() + " does not generate shape " +
+                "Material " + material.getKey() + " does not generate shape " +
                     unification.canonical(shape));
         }
         return stack;
@@ -224,7 +224,6 @@ public final class ShapeRegistry {
     /// Same as [#getStack(Material, Shape, int)], but null when `material` does not generate `shape`.
     ItemStack findStack(Material material, Shape shape, int amount) {
         requireResolved("build an itemstack");
-        material = material.canonical();
         Shape canonical = unification.canonical(shape);
         if (!(canonical instanceof BackedShape backed)) {
             throw new IllegalArgumentException(canonical + " is not a backed item or block shape");
@@ -301,7 +300,6 @@ public final class ShapeRegistry {
     /// a block shape declared with [BlockShapeBuilder#variants] that `material` generates.
     ItemStack getStack(Material material, Shape shape, String variant, int amount) {
         requireResolved("build an itemstack");
-        material = material.canonical();
         Shape canonical = unification.canonical(shape);
         if (!(canonical instanceof ShapeBlockVariants variants)) {
             throw new IllegalArgumentException(canonical + " is not a variant block shape");
@@ -422,10 +420,9 @@ public final class ShapeRegistry {
     /// resolve.
     String describeOverrides(Material material) {
         if (!resolved) return "";
-        Material canonical = material.canonical();
         List<String> pairs = new ObjectArrayList<>();
         forEachOverride((shape, overridden, override) -> {
-            if (overridden == canonical) {
+            if (overridden == material) {
                 pairs.add(Names.key(shape.getModId(), shape.getName()) + "=" + override.describe());
             }
         });
@@ -443,7 +440,6 @@ public final class ShapeRegistry {
     /// must be a fluid shape.
     Fluid getFluid(Material material, Shape shape) {
         requireResolved("look up a fluid");
-        material = material.canonical();
         Shape canonical = unification.canonical(shape);
         if (!(canonical instanceof ShapeFluid fluid)) {
             throw new IllegalArgumentException(canonical + " is not a fluid shape");
@@ -455,7 +451,6 @@ public final class ShapeRegistry {
     /// canonical fluid. The shape must be a fluid shape that `material` generates.
     FluidStack getFluidStack(Material material, Shape shape, int amount) {
         requireResolved("build a fluid stack");
-        material = material.canonical();
         Shape canonical = unification.canonical(shape);
         if (!(canonical instanceof ShapeFluid fluid)) {
             throw new IllegalArgumentException(canonical + " is not a fluid shape");

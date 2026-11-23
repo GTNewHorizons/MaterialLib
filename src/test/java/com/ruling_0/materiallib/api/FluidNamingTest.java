@@ -11,10 +11,8 @@ import org.junit.jupiter.api.Test;
 
 class FluidNamingTest {
 
-    private final MaterialRegistry registry = new MaterialRegistry();
-    private final TextureSet texture = TextureSet.of("examplemod", "shiny");
     private final Shape molten = new TestShape("examplemod", "molten");
-    private final Material iron = registry.newMaterial("examplemod", "TestIron", texture).build();
+    private final Material iron = TestMaterials.resolved("examplemod", "TestIron");
 
     @Test
     void aValidLowercaseNameIsAcceptedAndRecorded() {

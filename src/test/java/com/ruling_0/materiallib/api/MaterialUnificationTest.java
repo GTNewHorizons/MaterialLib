@@ -1,7 +1,10 @@
 package com.ruling_0.materiallib.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,8 +25,9 @@ class MaterialUnificationTest {
 
     @Test
     void sameNameMaterialsUnifyOntoTheAlphabeticallyFirstModidRegardlessOfOrder() {
-        registry.newMaterial("bmod", "testiron", otherTexture).build();
-        registry.newMaterial("amod", "testiron", ownerTexture).build();
+        Material fromB = registry.newMaterial("bmod", "testiron", otherTexture).build();
+        Material fromA = registry.newMaterial("amod", "testiron", ownerTexture).build();
+        assertSame(fromB, fromA);
         registry.resolve();
 
         assertEquals(1, registry.getMaterials().size());
@@ -102,8 +106,8 @@ class MaterialUnificationTest {
 
     @Test
     void conflictingPropertyValuesResolveToTheOwner() {
-        registry.newMaterial("amod", "testiron", ownerTexture).setProperty(MELTING_POINT, 1000).build();
         registry.newMaterial("bmod", "testiron", otherTexture).setProperty(MELTING_POINT, 2000).build();
+        registry.newMaterial("amod", "testiron", ownerTexture).setProperty(MELTING_POINT, 1000).build();
         registry.resolve();
 
         Material merged = registry.getMaterial("amod", "testiron");
@@ -175,20 +179,35 @@ class MaterialUnificationTest {
         assertEquals(0, merged.getIndex());
     }
 
+    /// The owner, and with it the modid and key, is elected only when the registry resolves.
     @Test
-    void aStaleLoserReferenceReadsThroughToTheMergedMaterial() {
-        Material winner = registry.newMaterial("amod", "testiron", ownerTexture)
-            .setProperty(MELTING_POINT, 1000)
-            .build();
-        Material loser = registry.newMaterial("bmod", "testiron", otherTexture).build();
+    void theOwnerIsUnknownUntilResolve() {
+        Material material = registry.newMaterial("amod", "testiron", ownerTexture).build();
+
+        assertThrows(IllegalStateException.class, material::getModId);
+        assertThrows(IllegalStateException.class, material::getKey);
+        assertEquals("testiron", material.getName());
+
+        registry.resolve();
+        assertEquals("amod", material.getModId());
+    }
+
+    @Test
+    void aModBuildingANameTwiceIsRejected() {
+        registry.newMaterial("amod", "testiron", ownerTexture).build();
+
+        assertThrows(IllegalStateException.class, registry.newMaterial("amod", "testiron", otherTexture)::build);
+    }
+
+    /// An edit or lookup by key reaches the shared material only through a mod that declared the name.
+    @Test
+    void anEditFromAModThatNeverDeclaredTheNameIsSkipped() {
+        registry.newMaterial("amod", "testiron", ownerTexture).build();
+        registry.newMaterial("bmod", "testiron", otherTexture).build();
+        registry.editMaterial("cmod", "testiron").setProperty(PROPERTY_A, 7);
         registry.resolve();
 
-        assertEquals(winner.getModId(), loser.getModId());
-        assertEquals(winner.getKey(), loser.getKey());
-        assertEquals(winner.getIndex(), loser.getIndex());
-        assertEquals(winner.getShapes(), loser.getShapes());
-        assertEquals(winner.getProperty(MELTING_POINT), loser.getProperty(MELTING_POINT));
-        assertEquals(winner.getTooltip(), loser.getTooltip());
-        assertSame(winner, loser.canonical());
+        assertFalse(registry.getMaterial("amod", "testiron").hasProperty(PROPERTY_A));
+        assertNull(registry.getMaterial("cmod", "testiron"));
     }
 }

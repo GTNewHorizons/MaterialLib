@@ -26,11 +26,12 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 /// any number of [Family]s. Membership, properties, and the effective shape set are only available after
 /// resolution.
 ///
-/// Two mods may declare a material with the same name without coordinating. At resolve, such declarations unify
-/// into one material carrying the union of their shapes, families, tooltip lines, and properties, keeping the
-/// owner's value for a property both declare. The owner is the mod recorded in the persisted owner store when it
-/// declares the name this session, else the alphabetically-first declaring modid. It supplies the modid, key,
-/// texture set, and lang key. A reference to a non-owning declaration reads through to the unified material.
+/// Two mods may declare a material with the same name without coordinating. Every [MaterialBuilder#build] of one name
+/// returns the same material, so the mods' references compare equal with `==`. At resolve, the declarations unify into
+/// that material, carrying the union of their shapes, families, tooltip lines, and properties and keeping the owner's
+/// value for a property both declare. The owner is the mod recorded in the persisted owner store when it declares the
+/// name this session, else the alphabetically-first declaring modid. It supplies the modid, key, texture set, and lang
+/// key, so [#getModId], [#getKey] and [#getLocalizedName] are only available once the registry has elected it.
 ///
 /// A shape override ([MaterialBuilder#addShapeOverride(Shape, net.minecraft.item.Item)]) serves one shape of the
 /// material with a foreign item instead of one MaterialLib mints. A [MaterialEdit] override wins over every
@@ -42,18 +43,15 @@ public final class Material {
     private static final Comparator<Family> FAMILY_KEY_ORDER = Comparator.comparing(Family::getKey);
 
     private final MaterialRegistry registry;
-    private final String modid;
     private final String name;
-    private final String key;
-    private final Map<Property<?>, Object> properties;
-    private final Set<Shape> ownShapes;
+    private final List<MaterialDeclaration> declarations = new ArrayList<>(1);
+    private final Map<Property<?>, Object> properties = new Reference2ObjectLinkedOpenHashMap<>();
+    private final Set<Shape> ownShapes = new ReferenceLinkedOpenHashSet<>();
     // Plain (unordered) sets: removedShapes is only membership-tested, and families is sorted into
     // sortedFamilies before any iteration order can be observed.
     private final Set<Shape> removedShapes = new ReferenceOpenHashSet<>(4);
     private final Set<Family> families = new ReferenceOpenHashSet<>(4);
     private final List<String> tooltipLines = new ArrayList<>(2);
-    private final Set<Material> alternatives = new ReferenceOpenHashSet<>(4);
-    private final MaterialDeclaration declaration;
     private final Map<Shape, ShapeOverride> editedOverrides = new Reference2ObjectLinkedOpenHashMap<>();
 
     private Family[] sortedFamilies;
@@ -62,56 +60,41 @@ public final class Material {
     private UnaryOperator<Shape> canonicalShape = UnaryOperator.identity();
     private Map<Property<?>, Object> propertiesView;
     private int index = -1;
-    private Material canonical = this;
+    private String modid;
+    private String key;
 
-    Material(MaterialRegistry registry, String modid, String name, Map<Property<?>, Object> properties,
-             Set<Shape> ownShapes, List<String> tooltipLines) {
-        this(registry, modid, name, properties, ownShapes, tooltipLines, MaterialDeclaration.EMPTY);
-    }
-
-    Material(MaterialRegistry registry, String modid, String name, Map<Property<?>, Object> properties,
-             Set<Shape> ownShapes, List<String> tooltipLines, MaterialDeclaration declaration) {
-        this.declaration = declaration;
+    Material(MaterialRegistry registry, String name) {
         this.registry = registry;
-        this.modid = modid;
         this.name = name;
-        this.key = Names.key(modid, name);
-        this.properties = new Reference2ObjectLinkedOpenHashMap<>(properties);
-        this.ownShapes = new ReferenceLinkedOpenHashSet<>(ownShapes);
-        this.tooltipLines.addAll(tooltipLines);
     }
 
+    /// The owning mod's modid. Only available once the registry has elected the owner.
     public String getModId() {
-        if (canonical != this) return canonical.getModId();
+        requireOwner();
         return modid;
     }
 
     /// The material's registry name, used in translation keys and oredict entries. Conventionally starts with a
     /// capital letter.
-    public String getName() {
-        if (canonical != this) return canonical.getName();
-        return name;
-    }
+    public String getName() { return name; }
 
     /// The translation of the material's [StandardProperties#DISPLAY_NAME_KEY] (by default
     /// `material.<modid>.<name>`), or the registry name when that key has no translation.
     public String getLocalizedName() {
-        if (canonical != this) return canonical.getLocalizedName();
         String key = ShapeNaming.materialNameKey(this);
         return StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : name;
     }
 
-    /// The registry key, `modid:name`.
+    /// The registry key, `modid:name`, with the owner's modid. Only available once the registry has elected the owner.
     public String getKey() {
-        if (canonical != this) return canonical.getKey();
+        requireOwner();
         return key;
     }
 
     /// The material's global index, used as the item damage in every item and block shape. Only available after the
     /// registry has resolved.
     public int getIndex() {
-        if (canonical != this) return canonical.getIndex();
-        registry.requireResolved("query the index of ", key);
+        registry.requireResolved("query the index of ", name);
         return index;
     }
 
@@ -119,8 +102,7 @@ public final class Material {
     /// -- the same order used to resolve property values. Empty for a standalone material. Only available after
     /// the registry has resolved.
     public Set<Family> getFamilies() {
-        if (canonical != this) return canonical.getFamilies();
-        registry.requireResolved("query the families of ", key);
+        registry.requireResolved("query the families of ", name);
         return familiesView;
     }
 
@@ -128,15 +110,13 @@ public final class Material {
     /// material specifically. Once shapes unify, each is the canonical shape of its name. Only available after the
     /// registry has resolved.
     public Set<Shape> getShapes() {
-        if (canonical != this) return canonical.getShapes();
-        registry.requireResolved("query the shapes of ", key);
+        registry.requireResolved("query the shapes of ", name);
         return shapes;
     }
 
     /// Whether this material generates `shape`, or the shape it unified onto. Agrees with
     /// [MaterialLibAPI#findStack] returning a stack. Only available after the registry has resolved.
     public boolean hasShape(Shape shape) {
-        if (canonical != this) return canonical.hasShape(shape);
         return getShapes().contains(canonicalShape.apply(shape));
     }
 
@@ -155,13 +135,7 @@ public final class Material {
     /// registry has resolved.
     @SuppressWarnings("unchecked")
     public <T> T getProperty(Property<T> property) {
-        if (canonical != this) return canonical.getProperty(property);
-        return getPropertyIgnoreCanonical(property);
-    }
-
-    @SuppressWarnings("unchecked")
-    <T> T getPropertyIgnoreCanonical(Property<T> property) {
-        registry.requireResolved("query properties of ", key);
+        registry.requireResolved("query properties of ", name);
         Object value = properties.get(property);
         if (value != null) return (T) value;
         for (Family family : sortedFamilies) {
@@ -174,8 +148,7 @@ public final class Material {
     /// True if this material or any of its families sets the property explicitly (the property default does not
     /// count).
     public boolean hasProperty(Property<?> property) {
-        if (canonical != this) return canonical.hasProperty(property);
-        registry.requireResolved("query properties of ", key);
+        registry.requireResolved("query properties of ", name);
         if (properties.containsKey(property)) return true;
         for (Family family : sortedFamilies) {
             if (family.getOwnPropertiesInternal().containsKey(property)) return true;
@@ -185,21 +158,18 @@ public final class Material {
 
     /// Properties set directly on this material, excluding family-level and default values.
     public Map<Property<?>, Object> getOwnProperties() {
-        if (canonical != this) return canonical.getOwnProperties();
-        registry.requireResolved("query properties of ", key);
+        registry.requireResolved("query properties of ", name);
         return propertiesView;
     }
 
     public boolean hasCustomTooltip() {
-        if (canonical != this) return canonical.hasCustomTooltip();
-        registry.requireResolved("query the tooltip of ", key);
+        registry.requireResolved("query the tooltip of ", name);
         return !tooltipLines.isEmpty();
     }
 
     /// The added tooltip lines of this material, as an unmodifiable view.
     public List<String> getTooltip() {
-        if (canonical != this) return canonical.getTooltip();
-        registry.requireResolved("query the tooltip of ", key);
+        registry.requireResolved("query the tooltip of ", name);
         return Collections.unmodifiableList(tooltipLines);
     }
 
@@ -247,16 +217,15 @@ public final class Material {
         }
         if (edited != null) return edited;
 
-        ShapeOverride owned = declaration.overrideFor(canonicalShape, canonical);
+        MaterialDeclaration owner = declarations.get(0);
+        ShapeOverride owned = owner.overrideFor(canonicalShape, canonical);
         if (owned != null && owned.isAvailable(modLoaded)) return owned;
-        if (declaration.generates(canonicalShape, canonical, registry)) return null;
+        if (owner.generates(canonicalShape, canonical, registry)) return null;
 
-        List<Material> losers = new ArrayList<>(alternatives);
-        losers.sort(Comparator.comparing(loser -> loser.modid));
-        for (Material loser : losers) {
-            ShapeOverride declared = loser.declaration.overrideFor(canonicalShape, canonical);
+        for (MaterialDeclaration other : declarations.subList(1, declarations.size())) {
+            ShapeOverride declared = other.overrideFor(canonicalShape, canonical);
             if (declared != null && declared.isAvailable(modLoaded) &&
-                loser.declaration.generates(canonicalShape, canonical, registry)) {
+                other.generates(canonicalShape, canonical, registry)) {
                 return declared;
             }
         }
@@ -265,9 +234,9 @@ public final class Material {
 
     /// Whether some declaration or edit of this unified material names an override.
     private boolean namesOverrides() {
-        if (!editedOverrides.isEmpty() || !declaration.overrides().isEmpty()) return true;
-        for (Material loser : alternatives) {
-            if (!loser.declaration.overrides().isEmpty()) return true;
+        if (!editedOverrides.isEmpty()) return true;
+        for (MaterialDeclaration declaration : declarations) {
+            if (!declaration.overrides().isEmpty()) return true;
         }
         return false;
     }
@@ -276,9 +245,8 @@ public final class Material {
     Set<Shape> overriddenShapeDeclarations() {
         if (!namesOverrides()) return Set.of();
         Set<Shape> declared = new ReferenceLinkedOpenHashSet<>(editedOverrides.keySet());
-        declared.addAll(declaration.overrides().keySet());
-        for (Material loser : alternatives) {
-            declared.addAll(loser.declaration.overrides().keySet());
+        for (MaterialDeclaration declaration : declarations) {
+            declared.addAll(declaration.overrides().keySet());
         }
         return declared;
     }
@@ -288,29 +256,55 @@ public final class Material {
         tooltipLines.clear();
     }
 
-    /// Folds another declaration of this material's name into this material: unions shapes, removed shapes,
-    /// families, and tooltip lines, keeps the already-present value for any property both declare, and reroutes
-    /// the other declaration's reads here.
-    void mergeFrom(Material loser) {
-        for (Map.Entry<Property<?>, Object> entry : loser.properties.entrySet()) {
-            Object existing = properties.putIfAbsent(entry.getKey(), entry.getValue());
-            if (existing != null && !existing.equals(entry.getValue())) {
-                MaterialLib.LOG.warn(
-                    "Material {} keeps {} = {}; {} declares conflicting value {}",
-                    name,
-                    entry.getKey(),
-                    existing,
-                    loser.modid,
-                    entry.getValue());
-            }
+    /// Adds one mod's declaration of this material's name. Throws [IllegalStateException] when that mod already
+    /// declared it.
+    void addDeclaration(MaterialDeclaration declaration) {
+        requireMutable();
+        if (isDeclaredBy(declaration.modid())) {
+            throw new IllegalStateException(
+                "Material " + Names.key(declaration.modid(), name) + " is already registered");
         }
-        ownShapes.addAll(loser.ownShapes);
-        removedShapes.addAll(loser.removedShapes);
-        removedShapes.removeAll(ownShapes);
-        families.addAll(loser.families);
-        tooltipLines.addAll(loser.tooltipLines);
-        loser.canonical = this;
-        alternatives.add(loser);
+        declarations.add(declaration);
+    }
+
+    /// Whether `modid` declared this material.
+    boolean isDeclaredBy(String modid) {
+        for (MaterialDeclaration declaration : declarations) {
+            if (declaration.modid().equals(modid)) return true;
+        }
+        return false;
+    }
+
+    /// Every declaration of this material, in declaration order until it unifies, then owner first and the rest by
+    /// modid.
+    List<MaterialDeclaration> declarations() {
+        return Collections.unmodifiableList(declarations);
+    }
+
+    /// Makes `ownerModid` the owner and folds every declaration into this material, owner first, then by modid. A
+    /// property keeps the first value set, and shapes and tooltip lines accumulate.
+    void unify(String ownerModid) {
+        declarations.sort(Comparator
+            .comparing((MaterialDeclaration declaration) -> !declaration.modid().equals(ownerModid))
+            .thenComparing(MaterialDeclaration::modid));
+        for (MaterialDeclaration declaration : declarations) {
+            for (Map.Entry<Property<?>, Object> entry : declaration.properties().entrySet()) {
+                Object existing = properties.putIfAbsent(entry.getKey(), entry.getValue());
+                if (existing != null && !existing.equals(entry.getValue())) {
+                    MaterialLib.LOG.warn(
+                        "Material {} keeps {} = {}; {} declares conflicting value {}",
+                        name,
+                        entry.getKey(),
+                        existing,
+                        declaration.modid(),
+                        entry.getValue());
+                }
+            }
+            ownShapes.addAll(declaration.shapes());
+            tooltipLines.addAll(declaration.tooltipLines());
+        }
+        modid = ownerModid;
+        key = Names.key(ownerModid, name);
     }
 
     void addFamilyInternal(Family family) {
@@ -330,14 +324,6 @@ public final class Material {
     Map<Property<?>, Object> getOwnPropertiesInternal() { return properties; }
 
     Family[] getSortedFamiliesInternal() { return sortedFamilies; }
-
-    /// The unified material carrying this name, or this material when it owns its name.
-    Material canonical() {
-        return canonical;
-    }
-
-    /// The set of materials unified onto this canonical one.
-    Set<Material> getAlternatives() { return alternatives; }
 
     void resolveIndex(int index) {
         this.index = index;
@@ -364,12 +350,20 @@ public final class Material {
 
     private void requireMutable() {
         if (registry.isResolved()) {
-            throw new IllegalStateException("Material " + key + " mutated after the registry resolved");
+            throw new IllegalStateException("Material " + name + " mutated after the registry resolved");
         }
     }
 
+    private void requireOwner() {
+        if (modid == null) {
+            throw new IllegalStateException("Material " + name +
+                " has no owner until the material registry resolves; read its modid and key from preInit onwards");
+        }
+    }
+
+    /// `Material[modid:name]`, or `Material[name]` before the owner is elected.
     @Override
     public String toString() {
-        return "Material[" + key + "]";
+        return "Material[" + (key != null ? key : name) + "]";
     }
 }

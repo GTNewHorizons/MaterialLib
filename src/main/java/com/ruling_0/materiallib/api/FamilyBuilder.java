@@ -20,6 +20,7 @@ public final class FamilyBuilder {
     private final Map<Property<?>, Object> properties = new Reference2ObjectLinkedOpenHashMap<>();
     private final Set<Shape> shapes = new ReferenceLinkedOpenHashSet<>();
     private final List<String[]> memberKeys = new ArrayList<>();
+    private final List<Material> members = new ArrayList<>();
     private final List<String> tooltipLines = new ArrayList<>(2);
     private boolean built;
 
@@ -55,8 +56,8 @@ public final class FamilyBuilder {
 
     /// Adds a material to this family.
     public FamilyBuilder addMaterial(Material material) {
-        Objects.requireNonNull(material, "material must not be null");
-        return addMaterial(material.getModId(), material.getName());
+        members.add(Objects.requireNonNull(material, "material must not be null"));
+        return this;
     }
 
     /// Adds a material to this family by key, deferring the lookup until the registry resolves. The material may
@@ -91,6 +92,9 @@ public final class FamilyBuilder {
         registry.register(family);
         for (String[] memberKey : memberKeys) {
             registry.enqueueAddToFamily(memberKey[0], memberKey[1], modid, name);
+        }
+        for (Material member : members) {
+            registry.enqueueAddToFamily(member, modid, name);
         }
         built = true;
         return family;

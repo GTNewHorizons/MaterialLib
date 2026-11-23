@@ -32,9 +32,9 @@ final class MaterialTints {
     static ColorResource resourceFor(Material material, Property<Integer> property) {
         Map<Material, ColorResource> byMaterial = RESOURCES.computeIfAbsent(property,
             ignored -> new ConcurrentHashMap<>());
-        return byMaterial.computeIfAbsent(material.canonical(),
-            canonical -> new ColorResource(MaterialLib.MODID, canonical.getName() + "." + property.getName(),
-                String.format("0x%08X", canonical.getProperty(property)), true));
+        return byMaterial.computeIfAbsent(material,
+            owner -> new ColorResource(MaterialLib.MODID, owner.getName() + "." + property.getName(),
+                String.format("0x%08X", owner.getProperty(property)), true));
     }
 
     /// The ARGB tint `material` resolves for its `_LAYER<layer>` icon, or opaque white where
@@ -47,19 +47,18 @@ final class MaterialTints {
     /// The [ColorResource] backing `material`'s `_LAYER<layer>` tint, or null where
     /// [StandardProperties#LAYER_TINTS] codes no element for that layer.
     static ColorResource layerResourceFor(Material material, int layer) {
-        Material canonical = material.canonical();
-        Integer coded = codedLayerTint(canonical, layer);
+        Integer coded = codedLayerTint(material, layer);
         if (coded == null) return null;
-        Map<Integer, ColorResource> byLayer = LAYER_RESOURCES.computeIfAbsent(canonical,
+        Map<Integer, ColorResource> byLayer = LAYER_RESOURCES.computeIfAbsent(material,
             ignored -> new ConcurrentHashMap<>());
         return byLayer.computeIfAbsent(layer,
-            number -> new ColorResource(MaterialLib.MODID, canonical.getName() + ".tint." + number,
+            number -> new ColorResource(MaterialLib.MODID, material.getName() + ".tint." + number,
                 String.format("0x%08X", coded), true));
     }
 
-    /// The tint `canonical` codes for its `_LAYER<layer>` icon, or null where the list stops short of it.
-    private static Integer codedLayerTint(Material canonical, int layer) {
-        List<Integer> tints = canonical.getProperty(StandardProperties.LAYER_TINTS);
+    /// The tint `material` codes for its `_LAYER<layer>` icon, or null where the list stops short of it.
+    private static Integer codedLayerTint(Material material, int layer) {
+        List<Integer> tints = material.getProperty(StandardProperties.LAYER_TINTS);
         if (tints == null || layer < 1 || layer > tints.size()) return null;
         return tints.get(layer - 1);
     }

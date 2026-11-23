@@ -1,7 +1,6 @@
 package com.ruling_0.materiallib.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.junit.jupiter.api.Test;
 
@@ -33,18 +32,5 @@ class MaterialTintsTest {
         assertEquals(0xFF00FF00, MaterialTints.layerColor(material, 1));
         assertEquals(0xFF0000FF, MaterialTints.layerColor(material, 2));
         assertEquals(0xFFFFFFFF, MaterialTints.layerColor(material, 3));
-    }
-
-    @Test
-    void aUnifiedAlternativeReadsTheCanonicalMaterialsKey() {
-        Material owner = registry.newMaterial("amod", "TestSteel", texture)
-            .setProperty(StandardProperties.CELL_TINT, 0x80FF0000).build();
-        Material alternative = registry.newMaterial("bmod", "TestSteel", texture).build();
-        registry.resolve();
-
-        assertEquals("color.resource.materiallib.TestSteel.cellTint",
-            MaterialTints.resourceFor(alternative, StandardProperties.CELL_TINT).getLangKey());
-        assertSame(MaterialTints.resourceFor(owner, StandardProperties.CELL_TINT),
-            MaterialTints.resourceFor(alternative, StandardProperties.CELL_TINT));
     }
 }

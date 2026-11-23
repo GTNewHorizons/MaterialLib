@@ -34,12 +34,11 @@ class ShapeIconsTest {
     private final TextureSet setC = TextureSet.of("testmod", "setC");
 
     /// Pins that a material with no [StandardProperties#TEXTURE_SET] binds the placeholder instead of crashing. The
-    /// [Material] is constructed directly because [MaterialBuilder] rejects a missing texture set.
+    /// [Material] is declared directly because [MaterialBuilder] rejects a missing texture set.
     @Test
     void materialWithoutTextureSetBindsPlaceholderInsteadOfCrashing() {
         Map<Property<?>, Object> properties = Map.of();
-        Material material = new Material(registry, "testmod", "Broken", properties, Set.of(), List.of());
-        registry.register(material);
+        Material material = TestMaterials.declare(registry, "testmod", "Broken", properties);
         registry.resolve();
 
         ShapeIcons icons = new ShapeIcons(true, path -> false);
@@ -57,8 +56,7 @@ class ShapeIconsTest {
     @Test
     void anEmptyFallbackListBindsThePlaceholderWithoutCrashing() {
         Map<Property<?>, Object> properties = Map.of(StandardProperties.FALLBACK_TEXTURE_SETS, List.of());
-        Material material = new Material(registry, "testmod", "Broken", properties, Set.of(), List.of());
-        registry.register(material);
+        Material material = TestMaterials.declare(registry, "testmod", "Broken", properties);
         registry.resolve();
 
         ShapeIcons icons = new ShapeIcons(true, path -> false);
@@ -114,15 +112,26 @@ class ShapeIconsTest {
             ShapeIcons.resolvePath(material, List.of("gear_x", "gear"), null, NO_OVERRIDE));
     }
 
-    /// Every source of a material outranks every source of a unification alternative.
+    /// Every source of a material outranks every source of another mod's declaration of it.
     @Test
-    void ownSourcesBeatAnAlternatives() {
+    void ownSourcesBeatAnotherDeclarations() {
         Material owner = declareMaterial("amod", "Testiron", setA, List.of(setB));
         declareMaterial("bmod", "Testiron", setC, List.of());
         registry.resolve();
         Predicate<String> exceptSetA = NO_OVERRIDE.and(path -> !path.equals(setA.iconPath("gear")));
 
         assertEquals(setB.iconPath("gear"), ShapeIcons.resolvePath(owner, List.of("gear"), null, exceptSetA));
+    }
+
+    /// Another declaration that sets no fallback texture sets still offers its own texture set.
+    @Test
+    void anotherDeclarationWithoutFallbacksStillOffersItsTextureSet() {
+        Material owner = declareMaterial("amod", "Testiron", setA, List.of(setB));
+        TestMaterials.declare(registry, "bmod", "Testiron", Map.of(StandardProperties.TEXTURE_SET, setC));
+        registry.resolve();
+        Predicate<String> onlySetC = NO_OVERRIDE.and(path -> path.equals(setC.iconPath("gear")));
+
+        assertEquals(setC.iconPath("gear"), ShapeIcons.resolvePath(owner, List.of("gear"), null, onlySetC));
     }
 
     /// A per-material icon path outranks the texture-set chain; returning null from it falls through to the chain.
@@ -266,8 +275,7 @@ class ShapeIconsTest {
     void anOverlayLayerReportsWhiteWhileANumberedLayerReportsItsCodedTint() {
         Map<Property<?>, Object> properties = Map.of(StandardProperties.TEXTURE_SET, setA,
             StandardProperties.TINT, 0xFFFFCC00, StandardProperties.LAYER_TINTS, List.of(0xFF00FF00, 0xFF0000FF));
-        Material material = new Material(registry, "testmod", "Testlayered", properties, Set.of(), List.of());
-        registry.register(material);
+        Material material = TestMaterials.declare(registry, "testmod", "Testlayered", properties);
         registry.resolve();
         String base = setA.iconPath("gear");
         Set<String> art = Set.of(base, base + ShapeIcons.LAYER_SUFFIX + 1, base + ShapeIcons.OVERLAY_SUFFIX);
@@ -282,10 +290,7 @@ class ShapeIconsTest {
     }
 
     private Material declareMaterial(String modid, String name, TextureSet textureSet, List<TextureSet> fallbacks) {
-        Map<Property<?>, Object> properties = Map.of(StandardProperties.TEXTURE_SET, textureSet,
-            StandardProperties.FALLBACK_TEXTURE_SETS, fallbacks);
-        Material material = new Material(registry, modid, name, properties, Set.of(), List.of());
-        registry.register(material);
-        return material;
+        return TestMaterials.declare(registry, modid, name, Map.of(StandardProperties.TEXTURE_SET, textureSet,
+            StandardProperties.FALLBACK_TEXTURE_SETS, fallbacks));
     }
 }

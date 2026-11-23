@@ -6,10 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -35,13 +33,12 @@ class ShapeFluidTest {
         assertEquals("legacy.testiron", molten.fluidName(iron));
     }
 
-    /// Constructs a [Material] directly -- [MaterialBuilder] rejects a missing [StandardProperties#TEXTURE_SET] --
+    /// Declares the [Material] directly -- [MaterialBuilder] rejects a missing [StandardProperties#TEXTURE_SET] --
     /// to pin that a fluid resolving no icon registers the placeholder.
     @Test
     void aMaterialWithNoTextureSetResolvesThePlaceholderIconPath() {
         Map<Property<?>, Object> properties = Map.of();
-        Material broken = new Material(registry, "examplemod", "Broken", properties, Set.of(), List.of());
-        registry.register(broken);
+        Material broken = TestMaterials.declare(registry, "examplemod", "Broken", properties);
         registry.resolve();
         ShapeFluid molten = new ShapeFluid("examplemod", "molten");
 

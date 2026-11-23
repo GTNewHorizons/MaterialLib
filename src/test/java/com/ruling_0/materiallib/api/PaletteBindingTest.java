@@ -180,9 +180,7 @@ class PaletteBindingTest {
     }
 
     private Material declare(String name, Map<Property<?>, Object> properties) {
-        Material material = new Material(registry, "testmod", name, properties, Set.of(), List.of());
-        registry.register(material);
-        return material;
+        return TestMaterials.declare(registry, "testmod", name, properties);
     }
 
     private record BakeCall(boolean isItem, ShapeIcons.StackPaths stack, PaletteRef palette) {}

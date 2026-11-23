@@ -5,13 +5,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.ruling_0.materiallib.MaterialLib;
 
@@ -25,8 +24,9 @@ import it.unimi.dsi.fastutil.objects.ReferenceLinkedOpenHashSet;
 /// The registry has two phases. During registration (inside [MaterialRegistrationEvent] handlers), mods register
 /// materials and families through the builders and queue cross-mod changes through [MaterialEdit] and
 /// [FamilyEdit]; key lookups return the registered objects, but their membership, shapes, and properties cannot
-/// be read yet, and neither can the bulk collection views. Once every handler has returned, [#resolve] merges
-/// same-name materials onto their owners, applies all queued edits in call order, derives family membership and
+/// be read yet, and neither can the bulk collection views. Each material name has one [Material], which every mod
+/// declaring the name receives. Once every handler has returned, [#resolve] elects each material's owner and folds its
+/// declarations into it, applies all queued edits in call order, derives family membership and
 /// per-material shape sets, and freezes the registry. From then on everything is readable and nothing can be
 /// registered or edited.
 ///
@@ -47,7 +47,6 @@ public final class MaterialRegistry {
     private Material[] materialsByIndex;
     private Map<String, Integer> assignedIndices = new LinkedHashMap<>();
     private String contentHash;
-    private final Map<String, Material> aliasKeys = new Object2ObjectLinkedOpenHashMap<>();
     private Map<String, String> persistedOwners = new LinkedHashMap<>();
     private Map<String, String> assignedOwners = new LinkedHashMap<>();
 
@@ -74,11 +73,12 @@ public final class MaterialRegistry {
         return new FamilyEdit(this, modid, name);
     }
 
-    /// The material with the given key, or null if none exists. Usable during registration, though the returned
-    /// material is only readable after the registry resolves. A key whose material unified onto another mod's
-    /// returns the unified material.
+    /// The material named `name`, or null unless `modid` declared it. Usable during registration, though the
+    /// returned material is only readable after the registry resolves. Every declaring mod's key returns the same
+    /// material.
     public Material getMaterial(String modid, String name) {
-        return materialByKey(Names.key(modid, name));
+        Material material = materials.get(name);
+        return material != null && material.isDeclaredBy(modid) ? material : null;
     }
 
     /// The family with the given key, or null if none exists. Usable during registration, though the returned
@@ -141,31 +141,17 @@ public final class MaterialRegistry {
         MaterialLib.LOG.info("Resolved {} materials and {} families", materials.size(), families.size());
     }
 
-    /// Unifies materials that share the same name onto a single canonical one, through an [OwnerElection].
+    /// Elects each material's owner through an [OwnerElection] and folds its declarations into it.
     private void unifyMaterials() {
-        Map<String, List<Material>> candidatesByName = new Object2ObjectLinkedOpenHashMap<>();
-        for (Material material : materials.values()) {
-            candidatesByName.computeIfAbsent(material.getName(), name -> new ObjectArrayList<>()).add(material);
-        }
         assignedOwners = new LinkedHashMap<>(persistedOwners);
-        for (Map.Entry<String, List<Material>> entry : candidatesByName.entrySet()) {
-            String name = entry.getKey();
-            List<Material> candidates = entry.getValue();
-            String ownerModid = OwnerElection
-                .choose("Material", name, candidates, Material::getModId, persistedOwners.get(name), "declared");
+        for (Material material : materials.values()) {
+            String name = material.getName();
+            String ownerModid = OwnerElection.choose("Material", name, material.declarations(),
+                MaterialDeclaration::modid, persistedOwners.get(name), "declared");
             assignedOwners.put(name, ownerModid);
-            if (candidates.size() == 1) continue;
-            candidates.sort(Comparator.comparing(Material::getModId));
-            Material winner = null;
-            for (Material candidate : candidates) {
-                if (candidate.getModId().equals(ownerModid)) winner = candidate;
-            }
-            for (Material loser : candidates) {
-                if (loser == winner) continue;
-                materials.remove(loser.getKey());
-                aliasKeys.put(loser.getKey(), winner);
-                MaterialLib.LOG.info("Unified material {}:{} onto owner {}", loser.getModId(), name, ownerModid);
-                winner.mergeFrom(loser);
+            material.unify(ownerModid);
+            for (MaterialDeclaration other : material.declarations().subList(1, material.declarations().size())) {
+                MaterialLib.LOG.info("Unified material {}:{} onto owner {}", other.modid(), name, ownerModid);
             }
         }
     }
@@ -206,11 +192,7 @@ public final class MaterialRegistry {
 
     /// Assigns each material its global index and fingerprints the result as [#getContentHash].
     private void assignMaterialIndices() {
-        Map<String, Material> byName = new Object2ObjectLinkedOpenHashMap<>();
-        for (Material material : materials.values()) {
-            byName.put(material.getName(), material);
-        }
-        List<String> names = new ObjectArrayList<>(byName.keySet());
+        List<String> names = new ObjectArrayList<>(materials.keySet());
         Collections.sort(names);
         if (names.size() - 1 > Short.MAX_VALUE) {
             throw new IllegalStateException(
@@ -223,7 +205,7 @@ public final class MaterialRegistry {
         for (int index = 0; index < names.size(); index++) {
             String name = names.get(index);
             assignedIndices.put(name, index);
-            Material material = byName.get(name);
+            Material material = materials.get(name);
             material.resolveIndex(index);
             materialsByIndex[index] = material;
         }
@@ -272,12 +254,13 @@ public final class MaterialRegistry {
         }
     }
 
-    void register(Material material) {
-        requireRegistration("register material " + material.getKey());
-        Material existing = materials.putIfAbsent(material.getKey(), material);
-        if (existing != null) {
-            throw new IllegalStateException("Material " + material.getKey() + " is already registered");
-        }
+    /// Adds `declaration` to the material named `name`, creating that material on its first declaration, and returns
+    /// it. Throws [IllegalStateException] when the declaring mod already declared the name.
+    Material declare(String name, MaterialDeclaration declaration) {
+        requireRegistration("register material " + Names.key(declaration.modid(), name));
+        Material material = materials.computeIfAbsent(name, ignored -> new Material(this, name));
+        material.addDeclaration(declaration);
+        return material;
     }
 
     void register(Family family) {
@@ -290,7 +273,7 @@ public final class MaterialRegistry {
 
     void enqueueMaterialOp(String modid, String name, String description, Consumer<Material> op) {
         enqueueOp(
-            this::materialByKey,
+            () -> getMaterial(modid, name),
             "Skipping edit \"{} {}\": no such material is registered",
             modid,
             name,
@@ -299,20 +282,20 @@ public final class MaterialRegistry {
     }
 
     void enqueueFamilyOp(String modid, String name, String description, Consumer<Family> op) {
-        enqueueOp(families::get, "Skipping edit \"{} {}\": no such family is registered", modid, name, description, op);
+        enqueueOp(
+            () -> getFamily(modid, name),
+            "Skipping edit \"{} {}\": no such family is registered",
+            modid,
+            name,
+            description,
+            op);
     }
 
-    /// The material registered under a key, or the unified material a merged key was folded into.
-    private Material materialByKey(String key) {
-        Material material = materials.get(key);
-        return material != null ? material : aliasKeys.get(key);
-    }
-
-    private <T> void enqueueOp(Function<String, T> lookup, String missingWarning, String modid, String name,
+    private <T> void enqueueOp(Supplier<T> lookup, String missingWarning, String modid, String name,
                                String description, Consumer<T> op) {
         String key = Names.key(modid, name);
         enqueue(description + " " + key, () -> {
-            T target = lookup.apply(key);
+            T target = lookup.get();
             if (target == null) {
                 MaterialLib.LOG.warn(missingWarning, description, key);
                 return;
@@ -323,11 +306,20 @@ public final class MaterialRegistry {
 
     void enqueueAddToFamily(String materialModid, String materialName, String familyModid, String familyName) {
         String familyKey = Names.key(familyModid, familyName);
-        enqueueMaterialOp(materialModid, materialName, "add to family " + familyKey + " material", material -> {
-            Family family = familyForEdit(familyKey, "addition", material);
-            if (family == null) return;
-            material.addFamilyInternal(family);
-        });
+        enqueueMaterialOp(materialModid, materialName, "add to family " + familyKey + " material",
+            material -> addToFamily(material, familyKey));
+    }
+
+    void enqueueAddToFamily(Material material, String familyModid, String familyName) {
+        String familyKey = Names.key(familyModid, familyName);
+        enqueue("add to family " + familyKey + " material " + material.getName(),
+            () -> addToFamily(material, familyKey));
+    }
+
+    private void addToFamily(Material material, String familyKey) {
+        Family family = familyForEdit(familyKey, "addition", material);
+        if (family == null) return;
+        material.addFamilyInternal(family);
     }
 
     void enqueueRemoveFromFamily(String materialModid, String materialName, String familyModid, String familyName) {

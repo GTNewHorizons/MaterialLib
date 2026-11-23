@@ -8,19 +8,25 @@ import java.util.function.UnaryOperator;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceLinkedOpenHashSet;
 
-/// The shapes, families and overrides declared by one mod's [MaterialBuilder], kept apart from the unified [Material]
-/// it folds into. Unification merges every declaration's shapes onto the owner, but which [ShapeOverride] survives
-/// depends on which declaration generates the shape.
-record MaterialDeclaration(Set<Shape> shapes, Set<Shape> removedShapes, List<String[]> familyKeys,
+/// One mod's contribution to a shared [Material]: what its [MaterialBuilder] declared, kept apart so the registry can
+/// fold every declaration of a name into the material once its owner is elected.
+record MaterialDeclaration(String modid, Map<Property<?>, Object> properties, Set<Shape> shapes,
+                           Set<Shape> removedShapes, List<String[]> familyKeys, List<String> tooltipLines,
                            Map<Shape, ShapeOverride> overrides) {
 
-    static final MaterialDeclaration EMPTY = new MaterialDeclaration(Set.of(), Set.of(), List.of(), Map.of());
-
     MaterialDeclaration {
+        properties = new Reference2ObjectLinkedOpenHashMap<>(properties);
         shapes = new ReferenceLinkedOpenHashSet<>(shapes);
         removedShapes = new ReferenceLinkedOpenHashSet<>(removedShapes);
         familyKeys = List.copyOf(familyKeys);
+        tooltipLines = List.copyOf(tooltipLines);
         overrides = new Reference2ObjectLinkedOpenHashMap<>(overrides);
+    }
+
+    /// The value this declaration sets for `property`, or null.
+    @SuppressWarnings("unchecked")
+    <T> T property(Property<T> property) {
+        return (T) properties.get(property);
     }
 
     /// Whether this declaration's own shapes or families generate `canonicalShape`, without it removing the shape.

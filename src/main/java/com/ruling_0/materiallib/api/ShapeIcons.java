@@ -23,9 +23,9 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 /// ([#isOverride]). [#resolvePath] gives the full source order.
 ///
 /// On a palette-enabled instance, a material with a palette png ([PaletteRef]) whose art resolved from a texture set
-/// binds one baked sprite in place of the stack, with every layer flattened and recolored through the palette. It
-/// then reports a single layer and white from [#layerColor] ([#isPaletteBaked]). Override and per-material art are
-/// never baked.
+/// binds baked sprites in place of the stack: one flattened sprite when the stack's textures share a size and animation
+/// timing, otherwise one per pass with the shared overlay last ([PaletteSprites#bake]). Every layer then reports white
+/// from [#layerColor] ([#isPaletteBaked]). Override and per-material art are never baked.
 final class ShapeIcons {
 
     /// The transparent placeholder icon path, present on both the item and block atlases.
@@ -45,11 +45,12 @@ final class ShapeIcons {
     /// numbered layer paths above it, and the `_OVERLAY` path or null when the art carries none.
     record StackPaths(String base, List<String> layers, String overlay) {}
 
-    /// Bakes one stack of art into a single sprite colored by `material`'s palette, or returns null to leave the
-    /// material on the tint path.
+    /// Bakes one stack of art through `material`'s palette, returning its icons in draw order, or null to leave the
+    /// material on the tint path. More than one icon means the stack draws in passes, ending with the overlay when the
+    /// stack has one.
     interface PaletteBinder {
 
-        IIcon bake(IIconRegister register, boolean isItem, StackPaths stack, Material material);
+        IIcon[] bake(IIconRegister register, boolean isItem, StackPaths stack, Material material);
     }
 
     private final Int2ObjectMap<IIcon[]> layersByIndex = new Int2ObjectOpenHashMap<>();
@@ -127,10 +128,11 @@ final class ShapeIcons {
                 overrideIndices.add(index);
             }
             else if (paletteBinder != null && !Objects.equals(path, perMaterial)) {
-                IIcon baked = paletteBinder.bake(register, isItem, stack, material);
+                IIcon[] baked = paletteBinder.bake(register, isItem, stack, material);
                 if (baked != null) {
-                    layersByIndex.put(index, new IIcon[] { baked });
+                    layersByIndex.put(index, baked);
                     paletteIndices.add(index);
+                    if (baked.length > 1 && stack.overlay() != null) overlayIndices.add(index);
                     continue;
                 }
             }

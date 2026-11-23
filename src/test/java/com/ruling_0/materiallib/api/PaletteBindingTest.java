@@ -59,6 +59,31 @@ class PaletteBindingTest {
             binder.calls.get(0));
     }
 
+    /// A stack whose textures differ in size or timing bakes one icon per pass. The shared overlay stays the last
+    /// layer and reports as the overlay, and every layer draws white.
+    @Test
+    void aStackBakedInPassesKeepsItsLayersAndOverlay() {
+        Material material = declareMaterial("Testiron");
+        registry.resolve();
+        String base = setA.iconPath("gear");
+        String layer = base + ShapeIcons.LAYER_SUFFIX + 1;
+        String overlay = base + ShapeIcons.OVERLAY_SUFFIX;
+        int index = material.getIndex();
+        binder.passes = true;
+
+        ShapeIcons icons = new ShapeIcons(true, Set.of(base, layer, overlay)::contains, binder);
+        icons.bind(register, new Material[] { material }, "gear");
+
+        assertTrue(icons.isPaletteBaked(index));
+        assertEquals(3, icons.layerCount(index));
+        assertTrue(icons.isOverlayLayer(index, 2));
+        assertFalse(icons.isOverlayLayer(index, 1));
+        assertSame(register.registered.get(overlay), icons.layer(index, 2));
+        for (int l = 0; l < 3; l++) {
+            assertEquals(0xFFFFFFFF, icons.layerColor(material, l));
+        }
+    }
+
     /// A resource-pack override outranks a palette and never reaches the baker, so its art draws as authored.
     @Test
     void aResourcePackOverrideOutranksThePalette() {
@@ -162,17 +187,28 @@ class PaletteBindingTest {
     private record BakeCall(boolean isItem, ShapeIcons.StackPaths stack, Material material) {}
 
     /// A [ShapeIcons.PaletteBinder] recording what it was handed, standing in for the client atlas. While `bakes`
-    /// it hands back the icon a real bake would put on the atlas under [PaletteRef#bakedIconName]; otherwise it
-    /// declines the way a missing palette png does.
+    /// it hands back the icons a real bake would put on the atlas under [PaletteRef#bakedIconName], one flattened
+    /// icon or, while `passes`, one per pass with the plain overlay last; otherwise it declines the way a missing
+    /// palette png does.
     private static final class RecordingBinder implements ShapeIcons.PaletteBinder {
 
         private final List<BakeCall> calls = new ArrayList<>();
         private boolean bakes = true;
+        private boolean passes;
 
         @Override
-        public IIcon bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, Material material) {
+        public IIcon[] bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, Material material) {
             calls.add(new BakeCall(isItem, stack, material));
-            return bakes ? register.registerIcon(PaletteRef.of(material).bakedIconName(stack.base())) : null;
+            if (!bakes) return null;
+            PaletteRef palette = PaletteRef.of(material);
+            if (!passes) return new IIcon[] { register.registerIcon(palette.bakedIconName(stack.base())) };
+            List<IIcon> icons = new ArrayList<>();
+            icons.add(register.registerIcon(palette.bakedIconName(stack.base())));
+            for (String layer : stack.layers()) {
+                icons.add(register.registerIcon(palette.bakedIconName(layer)));
+            }
+            if (stack.overlay() != null) icons.add(register.registerIcon(stack.overlay()));
+            return icons.toArray(new IIcon[0]);
         }
     }
 }

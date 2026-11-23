@@ -10,7 +10,6 @@ import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.data.AnimationMetadataSection;
 import net.minecraft.util.ResourceLocation;
 
-import com.gtnewhorizon.gtnhlib.util.ResourceUtil;
 import com.ruling_0.materiallib.MaterialLib;
 
 import cpw.mods.fml.relauncher.Side;
@@ -22,8 +21,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 ///
 /// Baking happens inside Forge's custom-loader hook, which replaces the atlas's own read of a file named after
 /// the sprite. The name therefore only has to be unique on the atlas, and the art comes from the paths passed to
-/// the constructor. Animation follows the base texture: every layer is a strip of the base's exact size, drawn
-/// frame for frame, and only the base's animation metadata is read.
+/// the constructor. Animation follows the base texture's `.mcmeta`. [PaletteArt#layout] hands a sprite layers only when
+/// they share the base's size and timeline, so they are drawn frame for frame; a stack drawn in passes bakes each of
+/// its textures into a sprite of its own.
 ///
 /// A base texture that cannot be read, or a bake that throws, resolves as the missing texture. A layer that cannot
 /// be read, or of any other size, is left out. Each of these failures is logged.
@@ -78,7 +78,7 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
     Art bake(IResourceManager manager, PaletteArt art) {
         PaletteArt.Texture base;
         try {
-            base = art.get(manager, texturePath(basePath));
+            base = art.get(manager, PaletteArt.location(isItem, basePath));
         }
         catch (IOException e) {
             MaterialLib.LOG.error("Could not read base texture {} of {}", basePath, getIconName(), e);
@@ -117,7 +117,7 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
     private PaletteArt.Texture layer(IResourceManager manager, PaletteArt art, String path, int width, int height) {
         PaletteArt.Texture layer;
         try {
-            layer = art.get(manager, texturePath(path));
+            layer = art.get(manager, PaletteArt.location(isItem, path));
         }
         catch (IOException e) {
             warnLayer("Could not read layer {} of {}", path, getIconName(), e);
@@ -129,11 +129,6 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
             return null;
         }
         return layer;
-    }
-
-    private ResourceLocation texturePath(String path) {
-        if (isItem) return ResourceUtil.getCompleteItemTextureResourceLocation(path);
-        else return ResourceUtil.getCompleteBlockTextureResourceLocation(path);
     }
 
     private void warnLayer(String message, Object... args) {

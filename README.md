@@ -94,7 +94,9 @@ Each row of a palette pairs an index pixel (first column) with
 a color (second column). Every pixel of the Shape texture whose
 gray level, its brightest channel, matches a row's index pixel
 is replaced with that row's color; a gray level no row lists
-takes the last row's color. Layers share the same palette. A Material without a palette png keeps its tint, so a
+takes the last row's color. Layers share the same palette. A
+Shape whose textures share a size and an animation is baked into
+a single image; any other Shape is drawn layer by layer. A Material without a palette png keeps its tint, so a
 resource pack can switch any Material to a palette by adding
 one.
 
@@ -115,6 +117,10 @@ textures.
 > - Palettes are placed in
 > `assets/<modid>/textures/palettes/<MaterialName>.png`, under
 > the Material's own modid, matching its name's case.
+> - Any Shape texture (base, `_LAYER<n>`, `_OVERLAY` or
+> override) may animate through a standard `.mcmeta` beside its
+> png, each on its own timeline. A palette-colored Material holds
+> its own copy of every animated texture's frames.
 
 > [!TIP]
 >

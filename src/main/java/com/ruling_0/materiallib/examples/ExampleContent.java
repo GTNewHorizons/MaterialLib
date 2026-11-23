@@ -30,7 +30,8 @@ import cpw.mods.fml.common.registry.GameRegistry;
 /// TestGold show per-pair display names. TestGold is emissive and testOre sets emissive layers, so TestGold's
 /// testOre icon glows.
 ///
-/// TestPalette draws `palettes/TestPalette.png`, four entries, few enough to merge the art's darker shades. Its
+/// TestPalette draws `palettes/TestPalette.png`, whose index column lists every gray level of the test art, banded onto
+/// four tones. Its
 /// ingot2 shape shows the composite: the numbered layers baked through the same palette and the
 /// `_OVERLAY` left in its authored colors, flattened into one animated sprite from layers that are two-frame
 /// strips themselves. testOre draws the baked icon over its untinted vanilla variant bases and testBucket a baked

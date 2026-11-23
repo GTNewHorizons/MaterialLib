@@ -17,7 +17,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /// One atlas sprite baked from a shape's art through a [PaletteRef]: the base texture and its numbered layers
-/// recolored by the palette's entries, the overlay kept without coloring, all flattened in draw order into one
+/// recolored through the palette, the overlay kept without coloring, all flattened in draw order into one
 /// sprite.
 ///
 /// Baking happens inside Forge's custom-loader hook, which replaces the atlas's own read of a file named after
@@ -37,20 +37,20 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
     private final String basePath;
     private final List<String> layerPaths;
     private final String overlayPath;
-    private final int[] entries;
+    private final PaletteBaker.Palette palette;
     private boolean warnedLayer;
 
     /// A sprite named `name` baking the art at `basePath`, its numbered layers at `layerPaths` and, when
-    /// `overlayPath` is non-null, its overlay, through the palette `entries`. Every path names an item texture when
+    /// `overlayPath` is non-null, its overlay, through `palette`. Every path names an item texture when
     /// `isItem`, a block texture otherwise.
     PaletteAtlasSprite(String name, boolean isItem, String basePath, List<String> layerPaths, String overlayPath,
-                       int[] entries) {
+                       PaletteBaker.Palette palette) {
         super(name);
         this.isItem = isItem;
         this.basePath = basePath;
         this.layerPaths = layerPaths;
         this.overlayPath = overlayPath;
-        this.entries = entries;
+        this.palette = palette;
     }
 
     @Override
@@ -86,10 +86,17 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
         }
         int width = base.width();
         int height = base.height();
-        int[] pixels = PaletteBaker.bake(base.indexed(), entries);
+        int[] pixels = PaletteBaker.bake(base.indexed(), palette);
+        int unmatched = PaletteBaker.unmatched(base.indexed(), palette);
         for (String layerPath : layerPaths) {
             PaletteArt.Texture layer = layer(manager, art, layerPath, width, height);
-            if (layer != null) PaletteBaker.compositeOver(pixels, PaletteBaker.bake(layer.indexed(), entries));
+            if (layer == null) continue;
+            PaletteBaker.compositeOver(pixels, PaletteBaker.bake(layer.indexed(), palette));
+            unmatched += PaletteBaker.unmatched(layer.indexed(), palette);
+        }
+        if (unmatched > 0) {
+            MaterialLib.LOG.debug("{} gray levels of {}'s art match no index row of its palette", unmatched,
+                getIconName());
         }
         if (overlayPath != null) {
             PaletteArt.Texture overlay = layer(manager, art, overlayPath, width, height);

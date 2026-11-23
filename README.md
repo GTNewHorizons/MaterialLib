@@ -90,12 +90,11 @@ tints the base layer of their Shapes. Layers are tinted by a
 untinted.
 - **Palettes:** A Material whose palette png exists, named after
 the Material, is colored by that palette rather than tinted.
-Each shade in the Shape texture, by descending value (of HSV,
-brightness), is replaced with the corresponding entry in the
-palette, read top to bottom from its first column. If there are
-more shades in the original art than entries in the palette,
-the last entry is repeated as necessary. Layers share the same
-palette. A Material without a palette png keeps its tint, so a
+Each row of a palette pairs an index pixel (first column) with
+a color (second column). Every pixel of the Shape texture whose
+gray level, its brightest channel, matches a row's index pixel
+is replaced with that row's color; a gray level no row lists
+takes the last row's color. Layers share the same palette. A Material without a palette png keeps its tint, so a
 resource pack can switch any Material to a palette by adding
 one.
 
@@ -120,11 +119,10 @@ textures.
 > [!TIP]
 >
 > The Palette system allows for more expression than the tint
-> system; however, it requires more work to implement. One must
-> take care that the base textures use a number of shades (by
-> value) that all palettes support. If some Materials need to
-> express more colors than others, consider repeating colors in
-> some palettes.
+> system; however, it requires more work to implement. A palette
+> should list every gray level its Material's textures use.
+> Drawing textures from a fixed set of grays, shared across
+> Shapes, lets one palette cover them all.
 
 ## Examples
 `ExampleContent` contains examples on using various API

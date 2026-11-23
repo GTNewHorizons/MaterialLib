@@ -13,15 +13,18 @@ import com.ruling_0.materiallib.MaterialLib;
 /// and external consumers still apply them -- but they do not color the material's baked shape art. A material with
 /// no palette png keeps the tint path.
 ///
-/// A palette png holds its entries in its first column, running top to bottom. Trailing fully-transparent pixels
-/// are ignored; interior transparent entries are not. No maximum height is assumed. Baking sorts the base texture's
-/// distinct shades (by HSV value, the brightest channel, lightest first) and maps them onto the entries in that
-/// order, clamping to the last entry where the art carries more shades than the palette. Alpha is kept from the base
-/// art and layers.
+/// A palette png pairs an index pixel in its first column with a color in its second, one row per entry, running top to
+/// bottom. Baking replaces every art pixel whose gray level (its brightest channel) matches a row's index pixel with
+/// that row's color, so a unit or two of channel noise in the art still finds its row. A level no row indexes takes the
+/// last entry. Alpha is kept from the base art and layers.
+///
+/// The first row indexing a level wins it. A row whose index pixel is fully transparent indexes nothing but is still an
+/// entry, so it can serve as the last entry. Trailing rows whose color is fully transparent are not entries, and
+/// columns past the second are ignored.
 ///
 /// Only texture set art bakes. Overrides under `mloverrides/`, [IconPather] paths, and fluid still/flowing textures
-/// are used without coloring. A palette png that cannot be read, or whose first column is fully transparent, leaves
-/// the material on the tint path. A layer that cannot be read, or whose size differs from the base, is left out of
+/// are used without coloring. A palette png that cannot be read, or that holds no entries, leaves the material on the
+/// tint path. A layer that cannot be read, or whose size differs from the base, is left out of
 /// the sprite.
 ///
 /// A resource pack recolors a material by shipping or replacing its palette png.

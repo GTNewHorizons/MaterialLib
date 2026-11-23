@@ -9,72 +9,118 @@ import java.awt.image.DirectColorModel;
 import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 
 /// Handles the pixel-level arithmetic behind [PaletteRef].
 ///
-/// A base texture's distinct HSV values are ranked from brightest to darkest, and each pixel takes the palette
-/// entry at its value's rank.
+/// A palette png pairs an index pixel with a color in each row, and baking replaces every art pixel whose gray level
+/// matches a row's index pixel with that row's color. A gray level is the brightest channel, so art with a unit or two
+/// of channel noise still finds its row. A level no row indexes takes the last entry. The art keeps its own alpha.
 final class PaletteBaker {
+
+    private static final int LEVELS = 256;
 
     private PaletteBaker() {}
 
-    /// A base texture reduced to palette ranks. `indices` holds each pixel's rank, or -1 where the pixel is fully
-    /// transparent and takes no color from the palette; `alphas` holds each pixel's own alpha, which survives
-    /// baking untouched. `uniqueCount` is the number of ranks.
-    record IndexedImage(int width, int height, int[] indices, int[] alphas, int uniqueCount) {}
+    /// Art reduced to gray levels. `levels` holds each pixel's [#level], or -1 where the pixel is fully transparent and
+    /// takes no color from the palette; `alphas` holds each pixel's own alpha, which survives baking untouched.
+    record IndexedImage(int width, int height, int[] levels, int[] alphas) {}
 
-    /// Ranks the distinct shades of `argb` by descending value and maps every pixel to its rank. Shades carried
-    /// only by fully transparent pixels are ignored.
+    /// A palette png read into a color for every gray level. Built through [PaletteBaker#palette].
+    static final class Palette {
+
+        private final int[] colors;
+        private final boolean[] indexed;
+        private final int size;
+
+        private Palette(int[] colors, boolean[] indexed, int size) {
+            this.colors = colors;
+            this.indexed = indexed;
+            this.size = size;
+        }
+
+        /// The `0xRRGGBB` color gray level `level` bakes to.
+        int color(int level) {
+            return colors[level];
+        }
+
+        /// Whether some row's index pixel has gray level `level`.
+        boolean indexes(int level) {
+            return indexed[level];
+        }
+
+        /// The number of entries.
+        int size() {
+            return size;
+        }
+    }
+
+    /// Reduces every pixel of `argb` to its gray level.
     static IndexedImage index(int[] argb, int width, int height) {
-        boolean[] present = new boolean[256];
-        for (int pixel : argb) {
-            if ((pixel >>> 24) != 0) present[value(pixel)] = true;
-        }
-        int[] rankOf = new int[256];
-        int ranks = 0;
-        for (int shade = 255; shade >= 0; shade--) {
-            if (present[shade]) rankOf[shade] = ranks++;
-        }
-        int[] indices = new int[argb.length];
+        int[] levels = new int[argb.length];
         int[] alphas = new int[argb.length];
         for (int i = 0; i < argb.length; i++) {
             int alpha = argb[i] >>> 24;
             alphas[i] = alpha;
-            indices[i] = alpha == 0 ? -1 : rankOf[value(argb[i])];
+            levels[i] = alpha == 0 ? -1 : level(argb[i]);
         }
-        return new IndexedImage(width, height, indices, alphas, ranks);
+        return new IndexedImage(width, height, levels, alphas);
     }
 
-    /// Recolors `base` through `palette`, one entry per rank. Ranks past the palette's last entry take that last
-    /// entry. A palette entry's own alpha is ignored: each pixel keeps the base's alpha, and a fully transparent
-    /// pixel stays fully transparent.
-    static int[] bake(IndexedImage base, int[] palette) {
-        int[] indices = base.indices();
-        int[] alphas = base.alphas();
-        int[] baked = new int[indices.length];
-        int last = palette.length - 1;
+    /// The palette in a png's first two columns, rows running top to bottom, or null when the png is narrower than two
+    /// columns or its color column holds no entries. Trailing rows with a fully transparent color are not entries. A
+    /// row whose index pixel is fully transparent indexes no level but still counts as an entry. The first row indexing
+    /// a level wins it.
+    static Palette palette(int[] argb, int width, int height) {
+        if (width < 2) return null;
+        int entries = height;
+        while (entries > 0 && (argb[(entries - 1) * width + 1] >>> 24) == 0) {
+            entries--;
+        }
+        if (entries == 0) return null;
+        int[] colors = new int[LEVELS];
+        Arrays.fill(colors, argb[(entries - 1) * width + 1] & 0xFFFFFF);
+        boolean[] indexed = new boolean[LEVELS];
+        for (int row = 0; row < entries; row++) {
+            int index = argb[row * width];
+            if ((index >>> 24) == 0) continue;
+            int level = level(index);
+            if (indexed[level]) continue;
+            indexed[level] = true;
+            colors[level] = argb[row * width + 1] & 0xFFFFFF;
+        }
+        return new Palette(colors, indexed, entries);
+    }
+
+    /// Recolors `art` through `palette`. Each pixel keeps the art's alpha, and a fully transparent pixel stays fully
+    /// transparent.
+    static int[] bake(IndexedImage art, Palette palette) {
+        int[] levels = art.levels();
+        int[] alphas = art.alphas();
+        int[] baked = new int[levels.length];
         for (int i = 0; i < baked.length; i++) {
-            int rank = indices[i];
-            if (rank < 0) continue;
-            baked[i] = (alphas[i] << 24) | (palette[Math.min(rank, last)] & 0xFFFFFF);
+            int level = levels[i];
+            if (level < 0) continue;
+            baked[i] = (alphas[i] << 24) | palette.color(level);
         }
         return baked;
     }
 
-    /// Column `column` of a palette png, its entries running top to bottom, or null if the column lies outside the
-    /// png or holds no entries at all. Trailing fully transparent pixels are dropped.
-    static int[] paletteColumn(int[] argb, int width, int height, int column) {
-        if (column < 0 || column >= width) return null;
-        int entries = height;
-        while (entries > 0 && (argb[(entries - 1) * width + column] >>> 24) == 0) {
-            entries--;
+    /// The number of distinct gray levels in `art` that no row of `palette` indexes.
+    static int unmatched(IndexedImage art, Palette palette) {
+        boolean[] seen = new boolean[LEVELS];
+        int unmatched = 0;
+        for (int level : art.levels()) {
+            if (level < 0 || seen[level]) continue;
+            seen[level] = true;
+            if (!palette.indexes(level)) unmatched++;
         }
-        if (entries == 0) return null;
-        int[] palette = new int[entries];
-        for (int entry = 0; entry < entries; entry++) {
-            palette[entry] = argb[entry * width + column];
-        }
-        return palette;
+        return unmatched;
+    }
+
+    /// The gray level of `argb`: its brightest channel.
+    static int level(int argb) {
+        return Math.max(Math.max((argb >> 16) & 0xFF, (argb >> 8) & 0xFF), argb & 0xFF);
     }
 
     /// Draws `src` over `dst` in place, leaving `dst` holding the flattened result. Both arrays cover the same
@@ -154,9 +200,5 @@ final class PaletteBaker {
         WritableRaster raster = Raster.createPackedRaster(new DataBufferInt(pixels, pixels.length), width, height,
             width, model.getMasks(), null);
         return new BufferedImage(model, raster, false, null);
-    }
-
-    private static int value(int argb) {
-        return Math.max(Math.max((argb >> 16) & 0xFF, (argb >> 8) & 0xFF), argb & 0xFF);
     }
 }

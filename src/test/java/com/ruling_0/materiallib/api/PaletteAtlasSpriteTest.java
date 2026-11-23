@@ -42,7 +42,8 @@ class PaletteAtlasSpriteTest {
     private static final String BASE = "testmod:materials/anim/ingot";
     private static final String LAYER = BASE + ShapeIcons.LAYER_SUFFIX + 1;
     private static final String OVERLAY = BASE + ShapeIcons.OVERLAY_SUFFIX;
-    private static final int[] PALETTE = { RED, GREEN };
+    private static final PaletteBaker.Palette PALETTE = PaletteBaker.palette(
+        new int[] { WHITE, RED, GRAY, GREEN, DARK, RED }, 2, 3);
 
     /// Two 1x1 frames stacked into a 1x2 strip.
     private static final AnimationMetadataSection TWO_FRAMES = new AnimationMetadataSection(List.of(), 1, 1, 20);

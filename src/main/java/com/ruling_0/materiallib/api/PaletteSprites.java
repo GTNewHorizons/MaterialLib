@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.imageio.ImageIO;
@@ -31,15 +32,13 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public final class PaletteSprites {
 
-    private static final int[] ABSENT = new int[0];
-
-    private static final Map<PaletteRef, int[]> ENTRIES = new ConcurrentHashMap<>();
+    private static final Map<PaletteRef, Optional<PaletteBaker.Palette>> PALETTES = new ConcurrentHashMap<>();
 
     private static PaletteArt art = new PaletteArt();
 
     @SubscribeEvent
     public void onTextureStitched(TextureStitchEvent.Post event) {
-        ENTRIES.clear();
+        PALETTES.clear();
         art = new PaletteArt();
     }
 
@@ -50,13 +49,13 @@ public final class PaletteSprites {
     static IIcon bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, Material material) {
         if (!(register instanceof TextureMap map)) return null;
         PaletteRef palette = PaletteRef.of(material);
-        int[] entries = entries(palette);
-        if (entries == null) return null;
+        PaletteBaker.Palette colors = palette(palette);
+        if (colors == null) return null;
         String name = palette.bakedIconName(stack.base());
         TextureAtlasSprite bound = map.getTextureExtry(name);
         if (bound != null) return bound;
         PaletteAtlasSprite sprite = new PaletteAtlasSprite(name, isItem, stack.base(), stack.layers(), stack.overlay(),
-            entries);
+            colors);
         map.setTextureEntry(name, sprite);
         return sprite;
     }
@@ -66,29 +65,26 @@ public final class PaletteSprites {
         return art;
     }
 
-    /// The entries of `palette`'s png, top to bottom, or null when the png is missing or unreadable or its first
-    /// column carries no entries.
-    static int[] entries(PaletteRef palette) {
-        int[] entries = ENTRIES.computeIfAbsent(palette, PaletteSprites::read);
-        return entries == ABSENT ? null : entries;
+    /// The palette read from `palette`'s png, or null when the png is missing, unreadable or holds no palette.
+    static PaletteBaker.Palette palette(PaletteRef palette) {
+        return PALETTES.computeIfAbsent(palette, PaletteSprites::read).orElse(null);
     }
 
-    private static int[] read(PaletteRef palette) {
-        if (!ResourceUtil.resourceExists(palette.png())) return ABSENT;
+    private static Optional<PaletteBaker.Palette> read(PaletteRef palette) {
+        if (!ResourceUtil.resourceExists(palette.png())) return Optional.empty();
         try (InputStream stream = Minecraft.getMinecraft().getResourceManager().getResource(palette.png())
             .getInputStream()) {
             BufferedImage image = ImageIO.read(stream);
             if (image == null) throw new IOException("no image reader accepted the file");
-            int width = image.getWidth();
-            int height = image.getHeight();
-            int[] entries = PaletteBaker.paletteColumn(image.getRGB(0, 0, width, height, null, 0, width), width,
-                height, 0);
-            if (entries != null) return entries;
-            MaterialLib.LOG.warn("Palette {} has no entries in its first column", palette.png());
+            PaletteBaker.Palette read = PaletteBaker.palette(PaletteBaker.argb(image), image.getWidth(),
+                image.getHeight());
+            if (read != null) return Optional.of(read);
+            MaterialLib.LOG.warn("Palette {} needs an index column and a color column with at least one entry",
+                palette.png());
         }
         catch (IOException e) {
             MaterialLib.LOG.warn("Could not read palette {}", palette.png(), e);
         }
-        return ABSENT;
+        return Optional.empty();
     }
 }

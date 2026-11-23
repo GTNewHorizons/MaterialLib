@@ -16,7 +16,7 @@ import net.minecraft.util.ResourceLocation;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/// The textures [PaletteAtlasSprite]s bake from, each decoded and ranked once.
+/// The textures [PaletteAtlasSprite]s bake from, each decoded and reduced to gray levels once.
 ///
 /// Every material baking a shape draws on that shape's base texture, layers and overlay, so the sprites of one
 /// stitch share a single read of each file instead of decoding it once per material. The arrays handed out are
@@ -24,7 +24,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 final class PaletteArt {
 
-    /// A texture's pixels, the palette ranks of its shades, and its animation metadata, if any.
+    /// A texture's pixels, their gray levels, and its animation metadata, if any.
     record Texture(int width, int height, int[] argb, PaletteBaker.IndexedImage indexed,
                    AnimationMetadataSection animation) {}
 

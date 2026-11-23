@@ -7,15 +7,14 @@ import com.ruling_0.materiallib.MaterialLib;
 /// A material's palette: the png `assets/<modid>/textures/palettes/<name>.png`, named after the material's modid and
 /// name ([#of]).
 ///
-/// A material whose palette png exists has its shape art baked rather than tinted. The base texture and its
-/// `_LAYER<n>`s are recolored through the palette when the texture atlas stitches, then flattened with the uncolored
-/// `_OVERLAY` into a single sprite. [StandardProperties#TINT] and its siblings stay settable and readable -- fluids
-/// and external consumers still apply them -- but they do not color the material's baked shape art. A material with
-/// no palette png keeps the tint path.
+/// A material whose palette png exists has its shape art baked rather than tinted. When the texture atlas stitches, the
+/// base texture and its `_LAYER<n>`s are recolored through the palette, and the `_OVERLAY` is drawn uncolored above
+/// them ([PaletteSprites#bake]). [StandardProperties#TINT] and its siblings still apply to fluids and external
+/// consumers, but not to the material's baked shape art. A material with no palette png keeps the tint path.
 ///
 /// A palette png pairs an index pixel in its first column with a color in its second, one row per entry, running top to
-/// bottom. Baking replaces every art pixel whose gray level (its brightest channel) matches a row's index pixel with
-/// that row's color, so a unit or two of channel noise in the art still finds its row. A level no row indexes takes the
+/// bottom. Baking replaces every art pixel whose gray level, its brightest channel, matches a row's index pixel with
+/// that row's color. Noise in the two dimmer channels does not change a level. A level that no row indexes takes the
 /// last entry. Alpha is kept from the base art and layers.
 ///
 /// The first row indexing a level wins it. A row whose index pixel is fully transparent indexes nothing but is still an
@@ -24,8 +23,7 @@ import com.ruling_0.materiallib.MaterialLib;
 ///
 /// Only texture set art bakes. Overrides under `mloverrides/`, [IconPather] paths, and fluid still/flowing textures
 /// are used without coloring. A palette png that cannot be read, or that holds no entries, leaves the material on the
-/// tint path. A layer that cannot be read, or whose size differs from the base, is left out of
-/// the sprite.
+/// tint path. A layer that cannot be read, or that vanilla would refuse as a sprite, is left out.
 ///
 /// A resource pack recolors a material by shipping or replacing its palette png.
 public record PaletteRef(String modid, String name) {
@@ -35,7 +33,7 @@ public record PaletteRef(String modid, String name) {
         Names.validate("palette name", name);
     }
 
-    /// The palette `material` draws through, named after its modid and name.
+    /// The palette of `material`, named after its modid and name.
     public static PaletteRef of(Material material) {
         return new PaletteRef(material.getModId(), material.getName());
     }

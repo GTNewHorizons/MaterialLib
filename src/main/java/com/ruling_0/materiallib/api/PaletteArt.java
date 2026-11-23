@@ -21,16 +21,11 @@ import com.ruling_0.materiallib.MaterialLib;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/// The textures [PaletteAtlasSprite]s bake from, each decoded and reduced to gray levels once, and the [Layout] each
-/// shape's stack binds with.
+/// Shape textures decoded once per stitch and shared by every [PaletteAtlasSprite] that bakes from them, together with
+/// the [Layout] of each shape's stack. Callers must not write to the arrays handed out.
 ///
-/// Every material baking a shape draws on that shape's base texture, layers and overlay, so the sprites of one stitch
-/// share a single read of each file instead of decoding it once per material. The arrays handed out are shared and must
-/// not be written to.
-///
-/// A stack flattens into one sprite only when every texture in it has the base's size and animation timeline, so one
-/// strip under the base's `.mcmeta` shows all of them exactly. Any other stack draws in passes like the tint path, each
-/// texture animating on its own.
+/// A stack flattens into one sprite only when every texture in it has the base's size and animation timeline. Any other
+/// stack draws in passes, like the tint path.
 @SideOnly(Side.CLIENT)
 final class PaletteArt {
 
@@ -38,11 +33,11 @@ final class PaletteArt {
     record Texture(int width, int height, int[] argb, PaletteBaker.IndexedImage indexed,
                    AnimationMetadataSection animation) {}
 
-    /// Whether a stack bakes into one sprite, the numbered layer paths it keeps in draw order, and the overlay path
-    /// when the overlay is usable, else null.
+    /// Whether a stack bakes into one sprite, the numbered layer paths kept, in draw order, and the overlay path when
+    /// the overlay is usable, else null.
     record Layout(boolean flattened, List<String> layers, String overlay) {}
 
-    /// A readable texture vanilla would accept as a sprite, and the frames it shows.
+    /// A texture acceptable to vanilla as a sprite, with animation frames.
     private record Usable(Texture texture, PaletteAnimation.Track track) {
 
         boolean linesUpWith(Usable base) {
@@ -73,9 +68,9 @@ final class PaletteArt {
         return texture;
     }
 
-    /// How `stack` binds on the item atlas when `isItem`, the block atlas otherwise. A numbered layer that cannot be
-    /// read or that vanilla would refuse as a sprite is left out with a warning; such an overlay takes no part. A base
-    /// of either kind keeps the stack flattened, so its sprite resolves as the missing texture.
+    /// How `stack` binds on the item atlas when `isItem`, the block atlas otherwise. A numbered layer or overlay that
+    /// cannot be read, or that vanilla would refuse as a sprite, is left out. Such a base yields a flattened layout
+    /// with no layers and no overlay.
     Layout layout(IResourceManager manager, boolean isItem, ShapeIcons.StackPaths stack) {
         String key = (isItem ? "items:" : "blocks:") + stack.base();
         Layout layout = layouts.get(key);

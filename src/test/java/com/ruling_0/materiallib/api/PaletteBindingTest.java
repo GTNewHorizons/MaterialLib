@@ -16,8 +16,8 @@ import net.minecraft.util.IIcon;
 
 import org.junit.jupiter.api.Test;
 
-/// Pins which texture source [ShapeIcons] offers to the palette baker, the art it hands it, and the shape and color
-/// of the stack a material ends up with whether or not it has a palette png. The baker is injected, so the whole
+/// Pins which texture source [ShapeIcons] offers to the palette baker, which art it passes along, and how each
+/// material's layer stack and colors come out, with or without a palette png. The baker is injected, so the whole
 /// classification runs headless.
 class PaletteBindingTest {
 
@@ -185,7 +185,7 @@ class PaletteBindingTest {
     private record BakeCall(boolean isItem, ShapeIcons.StackPaths stack, Material material) {}
 
     /// A [ShapeIcons.PaletteBinder] recording what it was handed, standing in for the client atlas. While `bakes`
-    /// it hands back the icons a real bake would put on the atlas under [PaletteRef#bakedIconName], one flattened
+    /// it hands back the icons that a real bake would put on the atlas under [PaletteRef#bakedIconName], one flattened
     /// icon or, while `passes`, one per pass with the plain overlay last; otherwise it declines the way a missing
     /// palette png does.
     private static final class RecordingBinder implements ShapeIcons.PaletteBinder {

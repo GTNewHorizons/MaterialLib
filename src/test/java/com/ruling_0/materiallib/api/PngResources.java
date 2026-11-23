@@ -66,13 +66,12 @@ final class PngResources implements IResourceManager {
         return List.of(getResource(location));
     }
 
-    /// Animation metadata as a `.mcmeta` with `frametime` and, when `frames` is non-empty, a frame list would
-    /// parse.
+    /// Parsed `.mcmeta` animation metadata with `frametime` and, when `frames` is non-empty, that frame list.
     static AnimationMetadataSection animation(int frametime, AnimationFrame... frames) {
         return new AnimationMetadataSection(List.of(frames), -1, -1, frametime);
     }
 
-    /// The complete item texture location GTNHLib derives from a `domain:path` texture key.
+    /// The complete item texture location that GTNHLib derives from a `domain:path` texture key.
     static ResourceLocation itemPng(String key) {
         int colon = key.indexOf(':');
         return new ResourceLocation(key.substring(0, colon), "textures/items/" + key.substring(colon + 1) + ".png");

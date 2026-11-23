@@ -23,9 +23,8 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 /// ([#isOverride]). [#resolvePath] gives the full source order.
 ///
 /// On a palette-enabled instance, a material with a palette png ([PaletteRef]) whose art resolved from a texture set
-/// binds baked sprites in place of the stack: one flattened sprite when the stack's textures share a size and animation
-/// timing, otherwise one per pass with the shared overlay last ([PaletteSprites#bake]). Every layer then reports white
-/// from [#layerColor] ([#isPaletteBaked]). Override and per-material art are never baked.
+/// binds the sprites from [PaletteSprites#bake] in place of the stack. Every layer then reports white from
+/// [#layerColor] ([#isPaletteBaked]). Override and per-material art are never baked.
 final class ShapeIcons {
 
     /// The transparent placeholder icon path, present on both the item and block atlases.
@@ -41,8 +40,8 @@ final class ShapeIcons {
     /// The resource-pack override root; see [#resolvePath].
     static final String OVERRIDE_ROOT = MaterialLib.MODID + ":mloverrides/";
 
-    /// The art one material's stack draws, in the order [#registerStack] binds it: the resolved base path, the
-    /// numbered layer paths above it, and the `_OVERLAY` path or null when the art carries none.
+    /// The texture paths of one material's stack, in draw order: the resolved base, the numbered layers above it, and
+    /// the `_OVERLAY`. `overlay` is null when the stack has no `_OVERLAY`.
     record StackPaths(String base, List<String> layers, String overlay) {}
 
     /// Bakes one stack of art through `material`'s palette, returning its icons in draw order, or null to leave the

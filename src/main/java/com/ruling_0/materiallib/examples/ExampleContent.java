@@ -31,11 +31,11 @@ import cpw.mods.fml.common.registry.GameRegistry;
 /// testOre icon glows.
 ///
 /// TestPalette draws `palettes/TestPalette.png`, whose index column lists every gray level of the test art, banded onto
-/// four tones. Its ingot2 shape is drawn in passes: its two-frame base and numbered layers are each baked through the
-/// palette, and its `_OVERLAY`, left in its authored colors, flips twice as fast as they do, on TestIron's tinted
-/// ingot2 as well. Every other TestPalette shape is flattened into one sprite. testOre draws the baked icon over its
-/// untinted vanilla variant bases and testBucket a baked fill over its untinted base, while the fluid still tints from
-/// the material's TINT.
+/// four tones. Its ingot2 shape is drawn in passes: the two-frame base and numbered layers are each baked through the
+/// palette, and the `_OVERLAY` keeps its authored colors and flips twice as fast, as it does on TestIron's tinted
+/// ingot2. Every other TestPalette shape is flattened into one sprite. testOre draws the baked icon over its untinted
+/// vanilla variant bases and testBucket a baked fill over its untinted base, while the fluid still tints from the
+/// material's TINT.
 public final class ExampleContent {
 
     /// The base texture testOre's `stone` variant draws under its tinted material icon. Must name a texture the

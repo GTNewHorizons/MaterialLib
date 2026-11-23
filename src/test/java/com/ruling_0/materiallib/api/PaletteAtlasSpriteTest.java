@@ -14,8 +14,8 @@ import net.minecraft.client.resources.data.AnimationMetadataSection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/// Pins how [PaletteAtlasSprite] flattens a layer stack: the layers [PaletteArt#layout] hands it are baked and drawn
-/// frame for frame under the base's strip and animation. Also pins the level array it hands `loadSprite`: the art
+/// Pins how [PaletteAtlasSprite] flattens a layer stack: layers handed over by [PaletteArt#layout] are baked and drawn
+/// frame for frame under the base's strip and animation. Also pins the level array passed to `loadSprite`: the art
 /// followed by one null slot per client mipmap level.
 class PaletteAtlasSpriteTest {
 

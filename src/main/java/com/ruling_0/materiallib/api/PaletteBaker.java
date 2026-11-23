@@ -11,19 +11,15 @@ import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.util.Arrays;
 
-/// Handles the pixel-level arithmetic behind [PaletteRef].
-///
-/// A palette png pairs an index pixel with a color in each row, and baking replaces every art pixel whose gray level
-/// matches a row's index pixel with that row's color. A gray level is the brightest channel, so art with a unit or two
-/// of channel noise still finds its row. A level no row indexes takes the last entry. The art keeps its own alpha.
+/// Reads palette pngs, recolors art through them and flattens layers, following the palette format in [PaletteRef].
 final class PaletteBaker {
 
     private static final int LEVELS = 256;
 
     private PaletteBaker() {}
 
-    /// Art reduced to gray levels. `levels` holds each pixel's [#level], or -1 where the pixel is fully transparent and
-    /// takes no color from the palette; `alphas` holds each pixel's own alpha, which survives baking untouched.
+    /// Art reduced to gray levels: `levels` holds each pixel's [#level], or -1 where the pixel is fully transparent,
+    /// and `alphas` holds each pixel's alpha.
     record IndexedImage(int width, int height, int[] levels, int[] alphas) {}
 
     /// A palette png read into a color for every gray level. Built through [PaletteBaker#palette].
@@ -37,7 +33,7 @@ final class PaletteBaker {
             this.indexed = indexed;
         }
 
-        /// The `0xRRGGBB` color gray level `level` bakes to.
+        /// The `0xRRGGBB` color for pixels at gray level `level`.
         int color(int level) {
             return colors[level];
         }
@@ -60,10 +56,8 @@ final class PaletteBaker {
         return new IndexedImage(width, height, levels, alphas);
     }
 
-    /// The palette in a png's first two columns, rows running top to bottom, or null when the png is narrower than two
-    /// columns or its color column holds no entries. Trailing rows with a fully transparent color are not entries. A
-    /// row whose index pixel is fully transparent indexes no level but still counts as an entry. The first row indexing
-    /// a level wins it.
+    /// The palette in a png's first two columns, or null when the png is narrower than two columns or holds no entries.
+    /// See [PaletteRef] for how rows are read.
     static Palette palette(int[] argb, int width, int height) {
         if (width < 2) return null;
         int entries = height;
@@ -144,9 +138,7 @@ final class PaletteBaker {
         }
     }
 
-    /// The pixels of `image` as ARGB, row by row. The layouts ImageIO decodes 8-bit PNGs into (RGBA, RGB and
-    /// indexed color) are read straight from the raster; any other layout goes through `getRGB`, which converts one
-    /// pixel at a time.
+    /// The pixels of `image` as ARGB, row by row.
     static int[] argb(BufferedImage image) {
         int width = image.getWidth();
         int height = image.getHeight();

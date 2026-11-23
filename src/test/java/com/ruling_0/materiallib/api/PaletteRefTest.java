@@ -11,7 +11,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.junit.jupiter.api.Test;
 
-/// Pins what [PaletteRef] accepts, where a material's palette png lives, and the sprite name it derives from a
+/// Pins what [PaletteRef] accepts, where a material's palette png lives, and how it derives a sprite name from a
 /// resolved texture path.
 class PaletteRefTest {
 

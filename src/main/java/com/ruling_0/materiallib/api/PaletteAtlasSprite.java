@@ -15,18 +15,14 @@ import com.ruling_0.materiallib.MaterialLib;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/// One atlas sprite baked from a shape's art through a [PaletteRef]: the base texture and its numbered layers
-/// recolored through the palette, the overlay kept without coloring, all flattened in draw order into one
-/// sprite.
+/// An atlas sprite baked through a [PaletteRef], from one texture or from a flattened stack of a base, its numbered
+/// layers and an uncolored overlay.
 ///
-/// Baking happens inside Forge's custom-loader hook, which replaces the atlas's own read of a file named after
-/// the sprite. The name therefore only has to be unique on the atlas, and the art comes from the paths passed to
-/// the constructor. Animation follows the base texture's `.mcmeta`. [PaletteArt#layout] hands a sprite layers only when
-/// they share the base's size and timeline, so they are drawn frame for frame; a stack drawn in passes bakes each of
-/// its textures into a sprite of its own.
+/// Baking runs in Forge's custom-loader hook in place of the atlas reading a file, so the sprite name only has to be
+/// unique on the atlas. Animation follows the base texture's `.mcmeta`, and layers are drawn frame for frame.
 ///
-/// A base texture that cannot be read, or a bake that throws, resolves as the missing texture. A layer that cannot
-/// be read, or of any other size, is left out. Each of these failures is logged.
+/// A base texture that cannot be read, or a bake that throws, resolves as the missing texture. A layer that cannot be
+/// read or does not match the base's size is left out.
 @SideOnly(Side.CLIENT)
 final class PaletteAtlasSprite extends TextureAtlasSprite {
 
@@ -73,8 +69,8 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
         }
     }
 
-    /// The flattened strip with the base texture's animation, or null when the base texture cannot be read. Art is
-    /// read through `art`, which shares each texture among every sprite baking it.
+    /// The flattened strip with the base texture's animation, or null when the base texture cannot be read. Textures
+    /// are read through `art`.
     Art bake(IResourceManager manager, PaletteArt art) {
         PaletteArt.Texture base;
         try {

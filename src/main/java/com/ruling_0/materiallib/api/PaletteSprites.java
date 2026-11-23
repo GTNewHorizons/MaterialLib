@@ -26,13 +26,10 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/// Reads the palette pngs behind [PaletteRef]s and puts sprites baked against them on an atlas through [#bake]: one
-/// flattened sprite per material and shape, or one per pass when the shape's textures differ in size or animation
-/// timing ([PaletteArt#layout]).
+/// Reads palette pngs and puts the sprites baked from them on texture atlases through [#bake].
 ///
-/// A palette png is read the first time a shape of its material binds on an atlas, and dropped when that atlas
-/// finishes stitching, as is the art its sprites baked from. Shapes bind in `registerIcons`, which Forge runs before
-/// `TextureStitchEvent.Pre`, so both are dropped on `TextureStitchEvent.Post`.
+/// Palette pngs and decoded textures are read on first use during a stitch and dropped on `TextureStitchEvent.Post`,
+/// not `Pre`, because shapes bind in `registerIcons`, which Forge runs before `TextureStitchEvent.Pre`.
 @SideOnly(Side.CLIENT)
 public final class PaletteSprites {
 
@@ -46,11 +43,10 @@ public final class PaletteSprites {
         art = new PaletteArt();
     }
 
-    /// The icons `stack`'s art binds for `material` in draw order, or null when `register` is not a texture atlas or
-    /// the material has no readable palette. A flattened stack binds one sprite. A stack drawn in passes binds a sprite
-    /// for its base and each numbered layer, then the overlay registered as on the tint path. A sprite already on the
-    /// atlas under [PaletteRef#bakedIconName] is reused; a new one is inserted with `setTextureEntry`, which keeps the
-    /// atlas from reading a file under that name.
+    /// The icons that `material` binds for `stack`'s art, in draw order, or null when `register` is not a texture atlas
+    /// or the material has no readable palette. A flattened stack binds one sprite. A stack drawn in passes binds a
+    /// sprite for its base and each numbered layer, then the overlay registered as on the tint path
+    /// ([PaletteArt#layout]). A sprite already on the atlas under its [PaletteRef#bakedIconName] is reused.
     static IIcon[] bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, Material material) {
         if (!(register instanceof TextureMap map)) return null;
         PaletteRef palette = PaletteRef.of(material);
@@ -70,7 +66,7 @@ public final class PaletteSprites {
         return icons.toArray(new IIcon[0]);
     }
 
-    /// The art read for the sprites baking during the current stitch.
+    /// The textures decoded for the sprites baking in the current stitch.
     static PaletteArt art() {
         return art;
     }

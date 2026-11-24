@@ -560,8 +560,8 @@ public final class ShapeRegistry {
     }
 
     /// Creates the item behind each registered empty container name, registers it with FML under MaterialLib's
-    /// domain (`materiallib:<name>`) with the elected owner supplying its icon and lang key, and binds every handle
-    /// registered for that name to it.
+    /// domain (`materiallib:<name>`) with the elected owner supplying its icon and lang key, gives it the fluid
+    /// container dispenser behavior, and binds every handle registered for that name to it.
     private void registerEmptyContainers() {
         Map<String, EmptyContainerHandle> owners = emptyContainers.chooseOwners();
         for (Map.Entry<String, EmptyContainerHandle> entry : owners.entrySet()) {
@@ -569,6 +569,7 @@ public final class ShapeRegistry {
             EmptyContainerHandle canonical = entry.getValue();
             Item item = new EmptyContainerItem(canonical.getModId(), name, canonical.iconPathOrDefault());
             GameRegistry.registerItem(item, name);
+            FluidContainerDispenseBehavior.registerFor(item);
             for (EmptyContainerHandle handle : emptyContainers.candidatesOf(name)) {
                 handle.bind(item);
             }

@@ -178,22 +178,62 @@ public class FluidPlacementGameTests {
         verified(helper, "vanilla bucket at a water-kind source");
     }
 
+    /// Fires `held` once from a dispenser at test-local (1, 1, 2), facing (1, 1, 1). Returns the dispenser.
+    private static TileEntityDispenser dispense(GameTestHelper helper, ItemStack held) {
+        World world = helper.getWorld();
+        TestPos pos = helper.absolute(1, 1, 2);
+        helper.setBlock(1, 1, 2, Blocks.dispenser);
+        world.setBlockMetadataWithNotify(pos.x(), pos.y(), pos.z(), FACING_NORTH, 2);
+        TileEntityDispenser dispenser = (TileEntityDispenser) world.getTileEntity(pos.x(), pos.y(), pos.z());
+        for (int slot = 0; slot < dispenser.getSizeInventory(); slot++) dispenser.setInventorySlotContents(slot, null);
+        dispenser.setInventorySlotContents(0, held);
+        Blocks.dispenser.updateTick(world, pos.x(), pos.y(), pos.z(), world.rand);
+        return dispenser;
+    }
+
     @GameTest(batch = BATCH)
-    public static void aDispenserLeavesAWaterKindSourceAlone(GameTestHelper helper) {
+    public static void aDispenserPlacesFromAStackAndKeepsTheEmpty(GameTestHelper helper) {
+        setUp(helper);
+        Block iron = fluidBlock(stack(helper, "TestIron", "testBucket", 1));
+        TileEntityDispenser dispenser = dispense(helper, stack(helper, "TestIron", "testBucket", 2));
+        helper.assertBlockPresent(iron, 0, 1, 1, 1);
+        helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 1), dispenser.getStackInSlot(0),
+            "dispenser slot after placing from a stack");
+        helper.assertItemEqual(new ItemStack(Items.bucket), dispenser.getStackInSlot(1), "emptied bucket");
+        verified(helper, "dispenser placement");
+    }
+
+    @GameTest(batch = BATCH)
+    public static void aDispenserPicksUpIntoTheContainersAPlayerFills(GameTestHelper helper) {
+        setUp(helper);
+        helper.setBlock(1, 1, 1, fluidBlock(stack(helper, "TestIron", "testBucket", 1)), 0);
+        TileEntityDispenser dispenser = dispense(helper, new ItemStack(Items.bucket));
+        helper.assertBlockPresent(Blocks.air, 1, 1, 1);
+        helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 1), dispenser.getStackInSlot(0),
+            "dispensed vanilla bucket");
+
+        helper.setBlock(1, 1, 1, fluidBlock(stack(helper, "TestIron", "testCanister", 1)), 0);
+        dispenser = dispense(helper, new ItemStack(GameRegistry.findItem(MaterialLib.MODID, "testCanisterEmpty")));
+        helper.assertBlockPresent(Blocks.air, 1, 1, 1);
+        helper.assertItemEqual(stack(helper, "TestIron", "testCanister", 1), dispenser.getStackInSlot(0),
+            "dispensed empty canister");
+        verified(helper, "dispenser pickup");
+    }
+
+    /// A dispenser never takes a water-kind block as water: a bucket with no form of the fluid is dropped instead.
+    @GameTest(batch = BATCH)
+    public static void aDispenserDropsABucketAtAWaterKindSource(GameTestHelper helper) {
         setUp(helper);
         Block gold = waterKindGas(helper);
-        World world = helper.getWorld();
         helper.setBlock(1, 1, 1, gold, 0);
-        helper.setBlock(1, 1, 2, Blocks.dispenser);
-        TestPos dispenser = helper.absolute(1, 1, 2);
-        world.setBlockMetadataWithNotify(dispenser.x(), dispenser.y(), dispenser.z(), FACING_NORTH, 2);
-        TileEntityDispenser inventory = (TileEntityDispenser) world.getTileEntity(dispenser.x(), dispenser.y(),
-            dispenser.z());
-        inventory.setInventorySlotContents(0, new ItemStack(Items.bucket));
-        Blocks.dispenser.updateTick(world, dispenser.x(), dispenser.y(), dispenser.z(), world.rand);
+        TileEntityDispenser dispenser = dispense(helper, new ItemStack(Items.bucket));
         helper.assertBlockPresent(gold, 0, 1, 1, 1);
-        helper.assertItemEqual(new ItemStack(Items.bucket), inventory.getStackInSlot(0),
-            "dispenser after dispensing at the source");
+        helper.assertNull(dispenser.getStackInSlot(0), "dispenser slot after dispensing at the source");
+        boolean dropped = false;
+        for (EntityItem item : helper.getEntities(EntityItem.class, 0, 0, 0, CELL_SIZE, CELL_SIZE, CELL_SIZE)) {
+            dropped |= item.getEntityItem().getItem() == Items.bucket;
+        }
+        helper.assertTrue(dropped, "the dispenser dropped no empty bucket");
         verified(helper, "dispensed bucket at a water-kind source");
     }
 

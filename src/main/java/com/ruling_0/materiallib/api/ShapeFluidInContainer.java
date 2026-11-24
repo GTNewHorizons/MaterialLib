@@ -95,13 +95,15 @@ public class ShapeFluidInContainer extends ShapeItem {
         return getProperty(StandardProperties.PLACES_FLUID) && volume == FluidContainerRegistry.BUCKET_VOLUME;
     }
 
-    /// Registers a [FluidContainerRegistry] mapping for each served material, filling this item at the material's
-    /// index from `fluid`. Called at resolve, after fluids and any registered empty container items exist.
+    /// Registers a [FluidContainerRegistry] mapping for each served material, filling this item at the material's index
+    /// from `fluid`. A placing container also gets the fluid container dispenser behavior. Called at resolve, after
+    /// fluids and any registered empty container items exist.
     void registerContainers(ShapeFluid fluid) {
         if (getProperty(StandardProperties.PLACES_FLUID) && !placesFluid()) {
             MaterialLib.LOG.warn("Fluid container {} holds {} mB, not one bucket; it will not place its fluid", this,
                 volume);
         }
+        if (placesFluid()) FluidContainerDispenseBehavior.registerFor(this);
         ItemStack empty = emptyStack();
         for (Material material : getServedMaterials()) {
             FluidStack fluidStack = fluid.fluidStack(material, volume);
@@ -134,7 +136,7 @@ public class ShapeFluidInContainer extends ShapeItem {
     }
 
     /// A fresh stack of the item left after draining, or null for a container consumed on drain.
-    private ItemStack emptyStack() {
+    ItemStack emptyStack() {
         return emptyContainer != null ? emptyContainer.resolve() : null;
     }
 

@@ -15,11 +15,10 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
-/// Lets vanilla buckets pick up placeable material fluids into placing containers.
+/// Lets vanilla buckets pick up placeable material fluids into placing containers, from a hand or a dispenser.
 ///
-/// Any other use of a vanilla bucket on a [ShapeFluidBlock], from a hand or a dispenser, leaves the block alone. This
-/// keeps vanilla from taking a water or lava kind block as plain water or lava. The bucket handler runs last, so
-/// another mod's handler that fills the bucket first wins.
+/// No other use of a vanilla bucket picks up a [ShapeFluidBlock], so vanilla never takes a water or lava kind block as
+/// plain water or lava. The bucket handler runs last, so another mod's handler that fills the bucket first wins.
 public final class FluidPickupHandler {
 
     private FluidPickupHandler() {}
@@ -29,8 +28,8 @@ public final class FluidPickupHandler {
         MinecraftForge.EVENT_BUS.register(new FluidPickupHandler());
         IBehaviorDispenseItem vanilla = (IBehaviorDispenseItem) BlockDispenser.dispenseBehaviorRegistry
             .getObject(Items.bucket);
-        IBehaviorDispenseItem guarded = (source, stack) -> facesFluidBlock(source) ? stack :
-            vanilla.dispense(source, stack);
+        IBehaviorDispenseItem guarded = (source, stack) -> facesFluidBlock(source) ?
+            FluidContainerDispenseBehavior.INSTANCE.dispense(source, stack) : vanilla.dispense(source, stack);
         BlockDispenser.dispenseBehaviorRegistry.putObject(Items.bucket, guarded);
     }
 

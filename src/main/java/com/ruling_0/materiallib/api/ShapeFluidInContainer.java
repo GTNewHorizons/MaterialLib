@@ -102,7 +102,7 @@ public class ShapeFluidInContainer extends ShapeItem {
             MaterialLib.LOG.warn("Fluid container {} holds {} mB, not one bucket; it will not place its fluid", this,
                 volume);
         }
-        ItemStack empty = emptyContainer != null ? emptyContainer.resolve() : null;
+        ItemStack empty = emptyStack();
         for (Material material : getServedMaterials()) {
             FluidStack fluidStack = fluid.fluidStack(material, volume);
             ItemStack filled = getStack(material, 1);
@@ -130,7 +130,12 @@ public class ShapeFluidInContainer extends ShapeItem {
         int y = hit.blockY + side.offsetY;
         int z = hit.blockZ + side.offsetZ;
         if (!FluidPlacement.placeFrom(player, world, x, y, z, hit.sideHit, stack)) return stack;
-        return FluidPlacement.exchange(stack, FluidContainerRegistry.drainFluidContainer(stack), player);
+        return FluidPlacement.exchange(stack, emptyStack(), player);
+    }
+
+    /// A fresh stack of the item left after draining, or null for a container consumed on drain.
+    private ItemStack emptyStack() {
+        return emptyContainer != null ? emptyContainer.resolve() : null;
     }
 
     /// Registers this container's fill icons, then its base icon at [#emptyIconPath], or the

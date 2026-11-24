@@ -35,8 +35,8 @@ final class FluidPlacement {
         if (!(fluid instanceof ShapeFluid)) throw new IllegalArgumentException(fluid + " is not a fluid shape");
     }
 
-    /// Places the fluid of `filled` at the given position when it is a placeable material fluid and the player may edit
-    /// there. Returns whether it placed.
+    /// Places the fluid of `filled` at the given position when `filled` holds a placeable material fluid and the player
+    /// may edit there. Returns whether it placed.
     static boolean placeFrom(EntityPlayer player, World world, int x, int y, int z, int side, ItemStack filled) {
         FluidStack fluid = FluidContainerRegistry.getFluidForFilledItem(filled);
         if (fluid == null || !(fluid.getFluid().getBlock() instanceof ShapeFluidBlock block)) return false;

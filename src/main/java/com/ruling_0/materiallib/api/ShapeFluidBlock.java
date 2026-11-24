@@ -22,8 +22,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 /// The block takes its Minecraft material from the [FluidBlockKind] the shape chose, and draws the fluid's icons and
 /// tint. A [ShapeFluid] subclass supplies its own subclass of this block from [ShapeFluid#createBlock].
 ///
-/// The shape's contact, tick and neighbor callbacks run before the fluid's own handling. A subclass overriding one of
-/// those events calls `super` to keep them.
+/// The shape's contact, tick and neighbor callbacks run on the matching event. A tick or neighbor callback that acts
+/// skips the fluid's own handling of the event. A subclass overriding one of these events calls `super` to keep the
+/// callbacks.
 public class ShapeFluidBlock extends BlockFluidClassic {
 
     private static final MaterialLiquid GAS = new MaterialLiquid(MapColor.airColor);

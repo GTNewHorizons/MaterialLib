@@ -149,7 +149,7 @@ case "${1:?usage: run.sh [--server <dir>] <all|world|examples|boot|discover|seed
         set_world "$VANILLA_WORLD_NAME"
         boot vanilla "$TESTS" || exit 1
         # Postea logs the custom-data line at DEBUG, which reaches the server's own log file but not the console.
-        grep -q "materiallib:idList: custom data enderstorage:global from version" \
+        grep -q "materiallib:idList: Custom data enderstorage:global from version" \
             "$LOGS/boot-vanilla.log" "$SERVER"/logs/fml-server-latest.log 2>/dev/null || {
             echo "boot vanilla did not transform enderstorage:global custom data" >&2
             exit 1

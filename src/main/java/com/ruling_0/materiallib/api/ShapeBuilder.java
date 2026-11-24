@@ -21,12 +21,12 @@ public abstract class ShapeBuilder<B extends ShapeBuilder<B>> {
         this.kind = kind;
     }
 
-    /// Sets the shape's [StandardProperties#DISPLAY_NAME_FORMAT_KEY], the translation key of the format applied to the
+    /// Sets the shape's [StandardProperties#LOCALIZATION_FORMAT_KEY], the translation key of the format applied to the
     /// material name. For example, a key translating to `%s Gear` gives `Iron Gear`. Without a translation, the
     /// name is the material name followed by the capitalized shape name. A lang file may override individual
     /// names; see [ShapeNaming].
-    public B displayNameKey(String key) {
-        return property(StandardProperties.DISPLAY_NAME_FORMAT_KEY, key);
+    public B localizationFormatKey(String key) {
+        return property(StandardProperties.LOCALIZATION_FORMAT_KEY, key);
     }
 
     /// Sets a property value on the shape. Values are read back through [Shape#getProperty] and may be altered

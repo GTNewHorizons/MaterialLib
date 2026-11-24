@@ -4,8 +4,8 @@ package com.ruling_0.materiallib.api;
 /// as inflecting the material name to fit the phrase. Set it as the shape's [StandardProperties#NAME_FORMATTER].
 ///
 /// MaterialLib calls it only when a format key translates, passing the first that does: the material's
-/// [StandardProperties#DISPLAY_NAME_FORMAT_KEYS] entry for the shape, else the shape's
-/// [StandardProperties#DISPLAY_NAME_FORMAT_KEY]. A lang override for the exact shape-and-material pair still wins.
+/// [StandardProperties#LOCALIZATION_FORMAT_KEYS] entry for the shape, else the shape's
+/// [StandardProperties#LOCALIZATION_FORMAT_KEY]. A lang override for the exact shape-and-material pair still wins.
 @FunctionalInterface
 public interface ShapeNameFormatter {
 

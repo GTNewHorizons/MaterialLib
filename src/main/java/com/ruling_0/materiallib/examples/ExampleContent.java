@@ -53,25 +53,25 @@ public final class ExampleContent {
         TextureSet test = TextureSet.of(MaterialLib.MODID, "test");
 
         Shape testGear = MaterialLibAPI.newItemShape(MaterialLib.MODID, "testGear")
-            .displayNameKey("format.materiallib.testGear")
+            .localizationFormatKey("format.materiallib.testGear")
             .oreDict("gear", "cog")
             .build();
 
         Shape ingot = MaterialLibAPI.newItemShape(MaterialLib.MODID, "ingot").build();
         Shape ingot2 = MaterialLibAPI.newItemShape(MaterialLib.MODID, "ingot2")
-            .displayNameKey("format.materiallib.ingot2")
+            .localizationFormatKey("format.materiallib.ingot2")
             .build();
 
         Shape block = MaterialLibAPI.newBlockShape(MaterialLib.MODID, "block").build();
 
         Shape testFrame = MaterialLibAPI.newBlockShape(MaterialLib.MODID, "testFrame")
-            .displayNameKey("format.materiallib.testFrame")
+            .localizationFormatKey("format.materiallib.testFrame")
             .oreDict("frameGt")
             .harvestTool("wrench")
             .build();
 
         Shape testOre = MaterialLibAPI.newBlockShape(MaterialLib.MODID, "testOre")
-            .displayNameKey("format.materiallib.testOre")
+            .localizationFormatKey("format.materiallib.testOre")
             .oreDict("ore")
             .variants("stone", "cobblestone").variantBase("stone", TEST_ORE_STONE_BASE_TEXTURE)
             .variantBase("cobblestone", TEST_ORE_COBBLESTONE_BASE_TEXTURE)
@@ -80,11 +80,11 @@ public final class ExampleContent {
             .build();
 
         Shape testFluid = MaterialLibAPI.newFluidShape(MaterialLib.MODID, "test")
-            .displayNameKey("format.materiallib.test")
+            .localizationFormatKey("format.materiallib.test")
             .iconPath("minecraft:water_still").build();
 
         Shape testBucket = MaterialLibAPI.newFluidInContainerShape(MaterialLib.MODID, "testBucket")
-            .displayNameKey("format.materiallib.testBucket")
+            .localizationFormatKey("format.materiallib.testBucket")
             .oreDict("bucket")
             .fluid(testFluid)
             .emptyContainer(new ItemStack(Items.bucket)).emptyIcon("minecraft:bucket_empty")

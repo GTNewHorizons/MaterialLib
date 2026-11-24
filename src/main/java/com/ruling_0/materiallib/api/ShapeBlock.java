@@ -63,7 +63,7 @@ public class ShapeBlock extends Block implements BackedShape {
 
     /// Creates a block shape backed by a [net.minecraft.block.material.Material#iron] block. `oreDicts` are the
     /// oredict prefixes, at least one. Identifiers must be non-empty and free of ':' and whitespace. The display
-    /// name comes from the shape's [StandardProperties#DISPLAY_NAME_FORMAT_KEY].
+    /// name comes from the shape's [StandardProperties#LOCALIZATION_FORMAT_KEY].
     public ShapeBlock(String modid, String name, String... oreDicts) {
         this(net.minecraft.block.material.Material.iron, modid, name, oreDicts);
     }

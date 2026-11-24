@@ -10,26 +10,26 @@ import java.util.Map;
 /// A shape stack's name comes from three kinds of key. The override key replaces the name of one shape-and-material
 /// pair outright. Otherwise a format key ([#formatKeys]) translates the format, such as `%s Gear`, that combines the
 /// shape with the material name. Without one, the name is the material name followed by the capitalized shape
-/// name. The material name key translates the material name, falling back to [Material#getName].
+/// name. The material localization key translates the material name, falling back to [Material#getName].
 final class ShapeNaming {
 
     private ShapeNaming() {}
 
     /// The translation keys of a shape's display-name format for `material`, most specific first: the material's
-    /// [StandardProperties#DISPLAY_NAME_FORMAT_KEYS] entry for `shapeName`, then the shape's
-    /// [StandardProperties#DISPLAY_NAME_FORMAT_KEY]. Unset keys are left out.
+    /// [StandardProperties#LOCALIZATION_FORMAT_KEYS] entry for `shapeName`, then the shape's
+    /// [StandardProperties#LOCALIZATION_FORMAT_KEY]. Unset keys are left out.
     static List<String> formatKeys(Shape shape, String shapeName, Material material) {
         List<String> keys = new ArrayList<>(2);
-        Map<String, String> materialKeys = material.getProperty(StandardProperties.DISPLAY_NAME_FORMAT_KEYS);
+        Map<String, String> materialKeys = material.getProperty(StandardProperties.LOCALIZATION_FORMAT_KEYS);
         if (materialKeys != null && materialKeys.containsKey(shapeName)) keys.add(materialKeys.get(shapeName));
-        String shapeKey = shape.getProperty(StandardProperties.DISPLAY_NAME_FORMAT_KEY);
+        String shapeKey = shape.getProperty(StandardProperties.LOCALIZATION_FORMAT_KEY);
         if (shapeKey != null) keys.add(shapeKey);
         return keys;
     }
 
     /// The translation key for a material's own display name: its [StandardProperties#LOCALIZATION_KEY], else
     /// `material.<modid>.<name>`, e.g. `material.examplemod.TestIron`.
-    static String materialNameKey(Material material) {
+    static String materialLocalizationKey(Material material) {
         String key = material.getProperty(StandardProperties.LOCALIZATION_KEY);
         return key != null ? key : "material." + material.getModId() + "." + material.getName();
     }

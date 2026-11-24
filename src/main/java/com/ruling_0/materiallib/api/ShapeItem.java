@@ -40,7 +40,7 @@ public class ShapeItem extends Item implements BackedShape {
 
     /// Creates an item shape. `oreDicts` are the oredict prefixes, at least one, each with the material name
     /// appended (e.g. `gear` -> `gearIron`). Identifiers must be non-empty and free of ':' and whitespace. The
-    /// display name comes from the shape's [StandardProperties#DISPLAY_NAME_FORMAT_KEY].
+    /// display name comes from the shape's [StandardProperties#LOCALIZATION_FORMAT_KEY].
     public ShapeItem(String modid, String name, String... oreDicts) {
         this.modid = Names.validate("item shape modid", modid);
         this.name = Names.validate("item shape name", name);

@@ -104,7 +104,7 @@ public final class Material {
     /// `material.<modid>.<name>` if the property is null.
     public String getLocalizationKey() {
         if (canonical != this) return canonical.getLocalizationKey();
-        return ShapeNaming.materialNameKey(this);
+        return ShapeNaming.materialLocalizationKey(this);
     }
 
     /// The registry key, `modid:name`.

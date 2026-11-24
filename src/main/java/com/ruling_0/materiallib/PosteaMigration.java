@@ -46,8 +46,10 @@ public final class PosteaMigration extends VersionedStackTransformer {
 
     private PosteaMigration() {}
 
-    /// Registers the transformer with Postea. Call in postInit, once shapes resolve.
+    /// Registers the transformer with Postea. Call in postInit, once shapes resolve. The system property
+    /// `materiallib.qa.withoutPosteaMigration` skips registration, to test saves made without the transformer.
     public static void register() {
+        if (Boolean.getBoolean("materiallib.qa.withoutPosteaMigration")) return;
         VersionedReplacementManager.register(new PosteaMigration());
     }
 

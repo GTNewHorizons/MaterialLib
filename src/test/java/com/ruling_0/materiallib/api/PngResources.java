@@ -36,6 +36,10 @@ final class PngResources implements IResourceManager {
         if (animation != null) animations.put(location, animation);
     }
 
+    boolean has(ResourceLocation location) {
+        return pngs.containsKey(location);
+    }
+
     @Override
     public Set<String> getResourceDomains() { return Set.of("testmod"); }
 

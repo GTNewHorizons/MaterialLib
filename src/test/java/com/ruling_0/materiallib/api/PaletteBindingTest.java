@@ -185,10 +185,10 @@ class PaletteBindingTest {
 
     private record BakeCall(boolean isItem, ShapeIcons.StackPaths stack, Material material) {}
 
-    /// A [ShapeIcons.PaletteBinder] recording what it was handed, standing in for the client atlas. While `bakes`
-    /// it hands back the icons that a real bake would put on the atlas under [PaletteRef#bakedIconName], one flattened
-    /// icon or, while `passes`, one per pass with the plain overlay last; otherwise it declines the way a missing
-    /// palette png does.
+    /// A [ShapeIcons.PaletteBinder] recording what it was handed, standing in for the client atlas. While `bakes` it
+    /// hands back the icons a real bake would put on the atlas under [PaletteRef#bakedIconName] when every texture of
+    /// the stack is usable: one flattened icon or, while `passes`, one per pass with the plain overlay last. Otherwise
+    /// it declines the way a missing palette png does.
     private static final class RecordingBinder implements ShapeIcons.PaletteBinder {
 
         private final List<BakeCall> calls = new ArrayList<>();
@@ -196,18 +196,23 @@ class PaletteBindingTest {
         private boolean passes;
 
         @Override
-        public IIcon[] bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, Material material) {
+        public ShapeIcons.PaletteIcons bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack,
+                                            Material material) {
             calls.add(new BakeCall(isItem, stack, material));
             if (!bakes) return null;
             PaletteRef palette = PaletteRef.find(material, location -> true);
-            if (!passes) return new IIcon[] { register.registerIcon(palette.bakedIconName(stack.base())) };
+            if (!passes) {
+                return new ShapeIcons.PaletteIcons(
+                    new IIcon[] { register.registerIcon(palette.bakedIconName(stack.base())) }, false);
+            }
             List<IIcon> icons = new ArrayList<>();
             icons.add(register.registerIcon(palette.bakedIconName(stack.base())));
             for (String layer : stack.layers()) {
                 icons.add(register.registerIcon(palette.bakedIconName(layer)));
             }
-            if (stack.overlay() != null) icons.add(register.registerIcon(stack.overlay()));
-            return icons.toArray(new IIcon[0]);
+            boolean overlay = stack.overlay() != null;
+            if (overlay) icons.add(register.registerIcon(stack.overlay()));
+            return new ShapeIcons.PaletteIcons(icons.toArray(new IIcon[0]), overlay);
         }
     }
 }

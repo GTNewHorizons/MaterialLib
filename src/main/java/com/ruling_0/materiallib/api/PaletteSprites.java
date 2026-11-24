@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 import javax.imageio.ImageIO;
 
@@ -15,7 +16,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.util.IIcon;
+import net.minecraft.util.ResourceLocation;
 
 import net.minecraftforge.client.event.TextureStitchEvent;
 
@@ -48,24 +51,36 @@ public final class PaletteSprites {
 
     /// The icons that `material` binds for `stack`'s art, in draw order, or null when `register` is not a texture atlas
     /// or the material has no readable palette. A flattened stack binds one sprite. A stack drawn in passes binds a
-    /// sprite for its base and each numbered layer, then the overlay registered as on the tint path
-    /// ([PaletteArt#layout]). A sprite already on the atlas under its [PaletteRef#bakedIconName] is reused.
-    static IIcon[] bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, Material material) {
+    /// sprite for its base and each numbered layer, then the overlay registered as on the tint path. Layers and an
+    /// overlay that [PaletteArt#layout] leaves out are not bound. A sprite already on the atlas under its
+    /// [PaletteRef#bakedIconName] is reused.
+    static ShapeIcons.PaletteIcons bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack,
+                                        Material material) {
+        return bake(register, Minecraft.getMinecraft().getResourceManager(), ResourceUtil::resourceExists, isItem,
+            stack, material);
+    }
+
+    /// As [#bake(IIconRegister, boolean, ShapeIcons.StackPaths, Material)], reading textures and palette pngs through
+    /// `manager`, with `exists` deciding which palette pngs exist.
+    static ShapeIcons.PaletteIcons bake(IIconRegister register, IResourceManager manager,
+                                        Predicate<ResourceLocation> exists, boolean isItem,
+                                        ShapeIcons.StackPaths stack, Material material) {
         if (!(register instanceof TextureMap map)) return null;
-        MaterialPalette palette = PALETTES.computeIfAbsent(material, PaletteSprites::read).orElse(null);
+        MaterialPalette palette = PALETTES.computeIfAbsent(material, m -> read(m, manager, exists)).orElse(null);
         if (palette == null) return null;
-        PaletteArt.Layout layout = art.layout(Minecraft.getMinecraft().getResourceManager(), isItem, stack);
+        PaletteArt.Layout layout = art.layout(manager, isItem, stack);
         if (layout.flattened()) {
-            return new IIcon[] {
-                sprite(map, palette, isItem, stack.base(), layout.layers(), layout.overlay()) };
+            IIcon sprite = sprite(map, palette, isItem, stack.base(), layout.layers(), layout.overlay());
+            return new ShapeIcons.PaletteIcons(new IIcon[] { sprite }, false);
         }
         List<IIcon> icons = new ArrayList<>();
         icons.add(sprite(map, palette, isItem, stack.base(), List.of(), null));
         for (String layer : layout.layers()) {
             icons.add(sprite(map, palette, isItem, layer, List.of(), null));
         }
-        if (stack.overlay() != null) icons.add(register.registerIcon(stack.overlay()));
-        return icons.toArray(new IIcon[0]);
+        String overlay = layout.overlay();
+        if (overlay != null) icons.add(register.registerIcon(overlay));
+        return new ShapeIcons.PaletteIcons(icons.toArray(new IIcon[0]), overlay != null);
     }
 
     /// The textures decoded for the sprites baking in the current stitch.
@@ -83,11 +98,11 @@ public final class PaletteSprites {
         return sprite;
     }
 
-    private static Optional<MaterialPalette> read(Material material) {
-        PaletteRef palette = PaletteRef.find(material, ResourceUtil::resourceExists);
+    private static Optional<MaterialPalette> read(Material material, IResourceManager manager,
+                                                  Predicate<ResourceLocation> exists) {
+        PaletteRef palette = PaletteRef.find(material, exists);
         if (palette == null) return Optional.empty();
-        try (InputStream stream = Minecraft.getMinecraft().getResourceManager().getResource(palette.png())
-            .getInputStream()) {
+        try (InputStream stream = manager.getResource(palette.png()).getInputStream()) {
             BufferedImage image = ImageIO.read(stream);
             if (image == null) throw new IOException("no image reader accepted the file");
             PaletteBaker.Palette read = PaletteBaker.palette(PaletteArt.argb(image), image.getWidth(),

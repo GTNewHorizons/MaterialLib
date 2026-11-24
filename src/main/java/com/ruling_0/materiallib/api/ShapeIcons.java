@@ -44,12 +44,14 @@ final class ShapeIcons {
     /// the `_OVERLAY`. `overlay` is null when the stack has no `_OVERLAY`.
     record StackPaths(String base, List<String> layers, String overlay) {}
 
-    /// Bakes one stack of art through `material`'s palette, returning its icons in draw order, or null to leave the
-    /// material on the tint path. More than one icon means the stack draws in passes, ending with the overlay when the
-    /// stack has one.
+    /// The icons baked for one stack, in draw order, and whether the last of them is the uncolored `_OVERLAY`. More
+    /// than one icon means the stack draws in passes.
+    record PaletteIcons(IIcon[] icons, boolean endsWithOverlay) {}
+
+    /// Bakes one stack of art through `material`'s palette, or returns null to leave the material on the tint path.
     interface PaletteBinder {
 
-        IIcon[] bake(IIconRegister register, boolean isItem, StackPaths stack, Material material);
+        PaletteIcons bake(IIconRegister register, boolean isItem, StackPaths stack, Material material);
     }
 
     private final Int2ObjectMap<IIcon[]> layersByIndex = new Int2ObjectOpenHashMap<>();
@@ -127,11 +129,11 @@ final class ShapeIcons {
                 overrideIndices.add(index);
             }
             else if (paletteBinder != null && !Objects.equals(path, perMaterial)) {
-                IIcon[] baked = paletteBinder.bake(register, isItem, stack, material);
+                PaletteIcons baked = paletteBinder.bake(register, isItem, stack, material);
                 if (baked != null) {
-                    layersByIndex.put(index, baked);
+                    layersByIndex.put(index, baked.icons());
                     paletteIndices.add(index);
-                    if (baked.length > 1 && stack.overlay() != null) overlayIndices.add(index);
+                    if (baked.endsWithOverlay()) overlayIndices.add(index);
                     continue;
                 }
             }

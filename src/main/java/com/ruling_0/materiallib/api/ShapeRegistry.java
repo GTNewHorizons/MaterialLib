@@ -474,8 +474,7 @@ public final class ShapeRegistry {
     /// Picks each name's owner, folds the merged-away declarations' properties into it, applies the queued
     /// [ShapeEdit]s, registers the owner's backing object and the item behind each empty container, binds each
     /// shape to the materials that generate it, registers fluids, the blocks of placeable fluids and the fluid
-    /// container mappings, and registers
-    /// the oredict entries.
+    /// container mappings, and registers the oredict entries.
     ///
     /// Properties merge before the edits drain, as in [MaterialRegistry#resolve], so an edit overrides what any
     /// declaration set. Invoked by MaterialLib's preInit handler after [MaterialRegistry#resolve]; other mods must
@@ -680,9 +679,9 @@ public final class ShapeRegistry {
         MaterialLib.LOG.info("Registered {} placeable fluid blocks", count);
     }
 
-    /// Logs where a fluid shape that lost the election for `canonical`'s name would have named or configured its
-    /// fluids differently. Namer output is per material, so divergence is only checkable once served materials are
-    /// bound, not while unification resolves.
+    /// Logs where a fluid shape that lost the election for `canonical`'s name would have named, configured or chosen
+    /// block kinds for its fluids differently, or configured their blocks differently. Namer output is per material, so
+    /// divergence is only checkable once served materials are bound, not while unification resolves.
     private void logCandidateDivergence(ShapeFluid canonical) {
         for (Shape candidate : unification.candidatesOf(canonical)) {
             if (candidate != canonical && candidate instanceof ShapeFluid candidateFluid) {

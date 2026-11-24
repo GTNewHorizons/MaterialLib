@@ -1,6 +1,7 @@
 package com.ruling_0.materiallib.api;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -33,8 +34,8 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 /// A bare fluid has no item form, so its material tooltip is carried by its container item (see
 /// [ShapeFluidInContainer]). Each fluid takes its display name from the shape's format and its color from the
 /// material's [StandardProperties#FLUID_TINT], or [StandardProperties#TINT] when unset, so tank and GUI renderers
-/// show the right name and tint without a custom fluid block. A fluid whose icon came from the resource-pack
-/// override location is untinted; see [ShapeItem#hasOverrideIcon].
+/// show the right name and tint. A fluid whose icon came from the resource-pack override location is untinted; see
+/// [ShapeItem#hasOverrideIcon].
 ///
 /// A placeable pair (see [MaterialBuilder#setPlaceable]) also gets a [ShapeFluidBlock] named `fluid.<fluidName>` in
 /// MaterialLib's domain.
@@ -140,8 +141,8 @@ public class ShapeFluid implements ServedShape {
         return null;
     }
 
-    /// Logs where `candidate`, a fluid shape unified onto this one, would have named or configured this shape's
-    /// fluids differently.
+    /// Logs where `candidate`, a fluid shape unified onto this one, would have named, configured or chosen block
+    /// kinds for this shape's fluids differently, or configured their blocks differently.
     void logCandidateDivergence(ShapeFluid candidate) {
         try {
             Material diverging = firstNameDivergence(candidate);
@@ -204,8 +205,8 @@ public class ShapeFluid implements ServedShape {
         return FluidRegistry.getFluid(fluidName);
     }
 
-    /// Registers a [ShapeFluidBlock] for each served material that [FluidPlacement#isPlaceable], skipping a fluid
-    /// this shape did not create.
+    /// Registers a [ShapeFluidBlock] for each served material whose fluid is placeable ([FluidPlacement#isPlaceable]),
+    /// skipping a fluid this shape did not create.
     void registerBlocks() {
         blocksByIndex.clear();
         FluidFlow flow = getProperty(StandardProperties.FLUID_FLOW);
@@ -235,7 +236,9 @@ public class ShapeFluid implements ServedShape {
 
     /// The kind of block placed for `material`'s `fluid`, as chosen by this shape's [FluidBlockKindChooser].
     FluidBlockKind blockKind(Material material, Fluid fluid) {
-        return kindChooser.choose(material, fluid);
+        return Objects.requireNonNull(
+            kindChooser.choose(material, fluid),
+            "block kind chooser of " + this + " returned null for " + material.getKey());
     }
 
     /// Creates the block for `material`'s `fluid`. Subclasses override this to supply their own [ShapeFluidBlock].

@@ -96,7 +96,7 @@ public final class ExampleContent {
             .build();
 
         Shape testGas = MaterialLibAPI.newFluidShape(MaterialLib.MODID, "testGas")
-            .displayNameKey("format.materiallib.testGas")
+            .localizationFormatKey("format.materiallib.testGas")
             .configureFluid((material, fluid) -> fluid.setGaseous(true).setDensity(-1000))
             .blockKind((material, fluid) -> "TestGold".equals(material.getName()) ? FluidBlockKind.WATER :
                 FluidBlockKindChooser.DEFAULT.choose(material, fluid))
@@ -105,7 +105,7 @@ public final class ExampleContent {
         EmptyContainerHandle testCanisterEmpty = MaterialLibAPI
             .registerEmptyContainer(MaterialLib.MODID, "testCanisterEmpty", "minecraft:bucket_empty");
         Shape testCanister = MaterialLibAPI.newFluidInContainerShape(MaterialLib.MODID, "testCanister")
-            .displayNameKey("format.materiallib.testCanister")
+            .localizationFormatKey("format.materiallib.testCanister")
             .fluid(testGas)
             .emptyContainer(testCanisterEmpty).emptyIcon("minecraft:bucket_empty")
             .placesFluid()

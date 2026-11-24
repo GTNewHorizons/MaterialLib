@@ -671,17 +671,14 @@ public final class ShapeRegistry {
     private void registerFluidBlocks() {
         int count = 0;
         for (ShapeFluid fluid : fluidShapes) {
-            fluid.registerBlocks();
-            for (Material material : fluid.getServedMaterials()) {
-                if (fluid.block(material) != null) count++;
-            }
+            count += fluid.registerBlocks();
         }
         MaterialLib.LOG.info("Registered {} placeable fluid blocks", count);
     }
 
-    /// Logs where a fluid shape that lost the election for `canonical`'s name would have named, configured or chosen
-    /// block kinds for its fluids differently, or configured their blocks differently. Namer output is per material, so
-    /// divergence is only checkable once served materials are bound, not while unification resolves.
+    /// Logs the divergence of each fluid shape that lost the election for `canonical`'s name; see
+    /// [ShapeFluid#logCandidateDivergence]. Namer output is per material, so divergence is only checkable once served
+    /// materials are bound, not while unification resolves.
     private void logCandidateDivergence(ShapeFluid canonical) {
         for (Shape candidate : unification.candidatesOf(canonical)) {
             if (candidate != canonical && candidate instanceof ShapeFluid candidateFluid) {

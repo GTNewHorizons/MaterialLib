@@ -4,7 +4,7 @@ package com.ruling_0.materiallib.api;
 /// viscosity.
 ///
 /// [Direction#DENSITY] keeps Forge's rule, where positive density flows down and negative density flows up. The
-/// distance is Forge's quanta per block, from 1 to 16. A distance of 1 does not spread.
+/// distance is Forge's quanta per block, from 1 to 16. A distance of 1 does not spread sideways.
 public record FluidFlow(Direction direction, int distance) {
 
     public static final FluidFlow DEFAULT = new FluidFlow(Direction.DENSITY, 8);

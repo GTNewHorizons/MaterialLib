@@ -66,7 +66,6 @@ public class ShapeFluid implements ServedShape {
     private final ShapeProperties props = new ShapeProperties();
 
     private final Int2ObjectMap<Fluid> fluidsByIndex = new Int2ObjectOpenHashMap<>();
-    private final Int2ObjectMap<ShapeFluidBlock> blocksByIndex = new Int2ObjectOpenHashMap<>();
     private final Set<Material> warnedMissingIcon = new ReferenceOpenHashSet<>();
     private final Set<Material> overrideIcons = new ReferenceOpenHashSet<>();
 
@@ -215,9 +214,9 @@ public class ShapeFluid implements ServedShape {
     }
 
     /// Registers a [ShapeFluidBlock] for each served material whose fluid is placeable ([FluidPlacement#isPlaceable]),
-    /// skipping a fluid this shape did not create.
-    void registerBlocks() {
-        blocksByIndex.clear();
+    /// skipping a fluid this shape did not create. Returns the number of blocks registered.
+    int registerBlocks() {
+        int count = 0;
         FluidFlow flow = getProperty(StandardProperties.FLUID_FLOW);
         for (Material material : served.get()) {
             if (!FluidPlacement.isPlaceable(material, this)) continue;
@@ -234,8 +233,9 @@ public class ShapeFluid implements ServedShape {
             block.setQuantaPerBlock(flow.distance());
             blockConfigurer.configure(material, block);
             GameRegistry.registerBlock(block, null, blockName(material));
-            blocksByIndex.put(material.getIndex(), block);
+            count++;
         }
+        return count;
     }
 
     void addContactCallback(FluidContactCallback callback) {
@@ -287,11 +287,6 @@ public class ShapeFluid implements ServedShape {
     /// Creates the block for `material`'s `fluid`. Subclasses override this to supply their own [ShapeFluidBlock].
     protected ShapeFluidBlock createBlock(Material material, Fluid fluid, FluidBlockKind kind) {
         return new ShapeFluidBlock(this, material, fluid, kind);
-    }
-
-    /// The block registered for `material` in this shape, or null when the pair is not placeable.
-    ShapeFluidBlock block(Material material) {
-        return blocksByIndex.get(material.getIndex());
     }
 
     /// The fluid registered for `material` in this shape, or null when the material does not generate it.

@@ -35,11 +35,13 @@ class ShapeFluidTest {
     void aBlockKindChooserReplacesTheDefaultRule() {
         Material iron = registry.newMaterial("examplemod", "TestIron", texture).build();
         Fluid hot = new Fluid("molten.testiron").setTemperature(1800);
+        Fluid gas = new Fluid("vapor.testiron").setGaseous(true);
         ShapeFluid molten = new ShapeFluid("examplemod", "molten");
         ShapeFluid tame = new ShapeFluid("examplemod", "molten", null, null, null,
             (material, fluid) -> FluidBlockKind.WATER, null);
 
         assertEquals(FluidBlockKind.LAVA, molten.blockKind(iron, hot));
+        assertEquals(FluidBlockKind.GAS, molten.blockKind(iron, gas));
         assertEquals(FluidBlockKind.WATER, tame.blockKind(iron, hot));
     }
 

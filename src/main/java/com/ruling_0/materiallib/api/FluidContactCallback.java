@@ -4,7 +4,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
 
 /// A callback that runs while an entity touches the placed block of a fluid [Shape], attached through
-/// [ShapeEdit#onFluidContact].
+/// [ShapeEdit#onFluidContact]. It runs in both client and server worlds.
 @FunctionalInterface
 public interface FluidContactCallback {
 

@@ -44,7 +44,7 @@ public final class FluidPickupHandler {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onFillBucket(FillBucketEvent event) {
         MovingObjectPosition target = event.target;
-        if (event.getResult() != Event.Result.DEFAULT || target == null ||
+        if (event.getResult() != Event.Result.DEFAULT || event.current == null || target == null ||
             target.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return;
         if (!(event.world.getBlock(target.blockX, target.blockY, target.blockZ) instanceof ShapeFluidBlock)) return;
         ItemStack filled = FluidPlacement.fillFrom(event.entityPlayer, event.world, target.blockX, target.blockY,

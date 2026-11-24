@@ -327,7 +327,7 @@ public class ShapeBlock extends Block implements BackedShape {
         return icons.isOverride(material.getIndex());
     }
 
-    /// Whether `material`'s icon was baked through its palette ([PaletteRef]); see [ShapeItem#hasPaletteBakedIcon].
+    /// Whether `material`'s icon was baked through its palette png; see [ShapeItem#hasPaletteBakedIcon].
     @SideOnly(Side.CLIENT)
     public boolean hasPaletteBakedIcon(Material material) {
         return icons.isPaletteBaked(material.getIndex());

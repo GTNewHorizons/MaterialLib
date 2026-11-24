@@ -16,7 +16,7 @@ import com.ruling_0.materiallib.MaterialLib;
 /// Every material reads `tint`. The other four keys are read only for a material that sets the matching property.
 /// A numbered icon layer is keyed `color.resource.materiallib.<MaterialName>.tint.<n>`, `<n>` being the layer's
 /// number, and is read only for a material whose [#LAYER_TINTS] codes element `n - 1`. A material with a palette png
-/// ([PaletteRef]) draws its shape art baked instead of tinted, so a pack recolors that art through the palette png
+/// (see the README) draws its shape art baked instead of tinted, so a pack recolors that art through the palette png
 /// rather than these keys.
 public final class StandardProperties {
 

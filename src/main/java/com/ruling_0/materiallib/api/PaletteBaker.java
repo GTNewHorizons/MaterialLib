@@ -2,7 +2,7 @@ package com.ruling_0.materiallib.api;
 
 import java.util.Arrays;
 
-/// Recolors shape art through a palette and flattens layers, following the palette format in [PaletteRef].
+/// Recolors shape art through a palette and flattens layers. The README describes the palette format.
 final class PaletteBaker {
 
     private static final int LEVELS = 256;
@@ -48,7 +48,6 @@ final class PaletteBaker {
     }
 
     /// The palette in a png's first two columns, or null when the png is narrower than two columns or holds no entries.
-    /// See [PaletteRef] for how rows are read.
     static Palette palette(int[] argb, int width, int height) {
         if (width < 2) return null;
         int entries = height;

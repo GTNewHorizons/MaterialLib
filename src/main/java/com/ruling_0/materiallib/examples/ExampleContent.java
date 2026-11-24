@@ -2,6 +2,7 @@ package com.ruling_0.materiallib.examples;
 
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.DamageSource;
 
 import com.ruling_0.materiallib.MaterialLib;
 import com.ruling_0.materiallib.api.EmptyContainerHandle;
@@ -30,7 +31,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 /// testGear adds a shapeless recipe per material crafting its ingot into its gear, and lang overrides on
 /// TestGold show per-pair display names. TestGold is emissive and testOre sets emissive layers, so TestGold's
 /// testOre icon glows. TestIron and TestGold place their test fluid from testBucket, TestIron places testGas from
-/// testCanister, and TestGold's fluid burns what touches it.
+/// testCanister, and TestGold's fluid hurts what touches it.
 ///
 /// TestPalette draws column 1 of the `test` palette, a four-entry column short enough to merge the art's darker
 /// shades. Its ingot2 shape shows the composite: the numbered layers baked through the same column and the
@@ -140,7 +141,7 @@ public final class ExampleContent {
 
         MaterialLibAPI.editShape(MaterialLib.MODID, "test").onFluidContact((material, world, x, y, z, entity) -> {
             if (!"TestGold".equals(material.getName())) return false;
-            entity.setFire(2);
+            entity.attackEntityFrom(DamageSource.inFire, 1.0F);
             return true;
         });
     }

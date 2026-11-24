@@ -210,17 +210,16 @@ public class FluidPlacementGameTests {
         verified(helper, "gas flow and canister pickup");
     }
 
+    /// Moves the pig through vanilla entity movement, the path that reaches the contact callback in play.
     @GameTest(batch = BATCH)
-    public static void touchingTestGoldBurns(GameTestHelper helper) {
+    public static void touchingTestGoldHurts(GameTestHelper helper) {
         setUp(helper);
-        Block gold = fluidBlock(stack(helper, "TestGold", "testBucket", 1));
-        helper.setBlock(1, 1, 1, gold, 0);
-        World world = helper.getWorld();
-        EntityPig pig = helper.spawnEntity(new EntityPig(world), 1.5, 1, 1.5);
+        helper.setBlock(1, 1, 1, fluidBlock(stack(helper, "TestGold", "testBucket", 1)), 0);
+        EntityPig pig = helper.spawnEntity(new EntityPig(helper.getWorld()), 1.5, 1, 1.5);
         helper.afterTest(pig::setDead);
-        gold.onEntityCollidedWithBlock(world, helper.getOriginX() + 1, helper.getOriginY() + 1, helper.getOriginZ() + 1,
-            pig);
-        helper.assertTrue(pig.isBurning(), "a pig touching TestGold's fluid is not burning");
+        float health = pig.getHealth();
+        pig.moveEntity(0, -0.01, 0);
+        helper.assertTrue(pig.getHealth() < health, "a pig moving in TestGold's fluid took no damage");
         verified(helper, "contact callback");
     }
 

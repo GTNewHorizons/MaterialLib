@@ -7,9 +7,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 
 /// Builds and registers a simple fluid-in-container [Shape] backed by a [ShapeFluidInContainer]. Obtained from
-/// [MaterialLibAPI#newFluidInContainerShape] and finished with [#build] inside the owning mod's
-/// [MaterialRegistrationEvent] handler. Mods needing custom behavior subclass [ShapeFluidInContainer] instead
-/// and register through [MaterialLibAPI#registerFluidInContainerShape].
+/// [MaterialLibAPI#newFluidInContainerShape] and finished with [#build]. Mods needing custom behavior subclass
+/// [ShapeFluidInContainer] instead and register through [MaterialLibAPI#registerFluidInContainerShape].
 public final class FluidInContainerShapeBuilder extends ShapeBuilder<FluidInContainerShapeBuilder> {
 
     private Shape fluidShape;

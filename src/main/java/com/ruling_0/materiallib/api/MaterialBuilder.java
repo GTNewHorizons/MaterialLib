@@ -64,7 +64,7 @@ public final class MaterialBuilder {
         return setProperty(StandardProperties.PALETTE, new PaletteRef(modid, name, column));
     }
 
-    /// Sets [StandardProperties#LOCALIZATION_KEY], an override key translated for the material's display name.
+    /// Sets [StandardProperties#LOCALIZATION_KEY], the translation key of the material's display name.
     public MaterialBuilder setLocalizationKey(String key) {
         return setProperty(StandardProperties.LOCALIZATION_KEY, key);
     }

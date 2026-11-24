@@ -93,10 +93,9 @@ public final class Material {
         return name;
     }
 
-    /// The translation of the material's [StandardProperties#LOCALIZATION_KEY] (by default
-    /// `material.<modid>.<name>`), or the registry name when that key has no translation.
+    /// The translation of [#getLocalizationKey], or the registry name when that key has no translation.
     public String getLocalizedName() {
-        String key = this.getLocalizationKey();
+        String key = getLocalizationKey();
         return StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : name;
     }
 

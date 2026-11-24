@@ -5,11 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/// Builds and registers a simple block [Shape] backed by a [ShapeBlock]. Obtained from
-/// [MaterialLibAPI#newBlockShape] and finished with [#build], which must be called inside the owning mod's
-/// [MaterialRegistrationEvent] handler. Mods needing custom block behavior subclass [ShapeBlock] instead and
-/// register through [MaterialLibAPI#registerBlockShape]. Building fails if a [#variantBase] is declared without
-/// [#variants].
+/// Builds and registers a simple block [Shape] backed by a [ShapeBlock]. Obtained from [MaterialLibAPI#newBlockShape]
+/// and finished with [#build]. Mods needing custom block behavior subclass [ShapeBlock] instead and register through
+/// [MaterialLibAPI#registerBlockShape]. Building fails if a [#variantBase] is declared without [#variants].
 public final class BlockShapeBuilder extends ShapeBuilder<BlockShapeBuilder> {
 
     private String[] oreDicts;

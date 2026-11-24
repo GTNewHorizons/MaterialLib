@@ -4,9 +4,8 @@ import java.util.Map;
 
 import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
 
-/// The part shared by the simple shape builders: the owner and name, the shape's properties, and registering the
-/// shape once through [#build]. Each builder is obtained from its `MaterialLibAPI.new*Shape` factory, and [#build]
-/// must be called inside the owning mod's [MaterialRegistrationEvent] handler.
+/// The base of the simple shape builders, each obtained from its `MaterialLibAPI.new*Shape` factory. [#build] must
+/// be called inside the owning mod's [MaterialRegistrationEvent] handler.
 public abstract class ShapeBuilder<B extends ShapeBuilder<B>> {
 
     final String modid;

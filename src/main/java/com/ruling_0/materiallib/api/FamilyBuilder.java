@@ -19,8 +19,7 @@ public final class FamilyBuilder {
     private final String name;
     private final Map<Property<?>, Object> properties = new Reference2ObjectLinkedOpenHashMap<>();
     private final Set<Shape> shapes = new ReferenceLinkedOpenHashSet<>();
-    private final List<String[]> memberKeys = new ArrayList<>();
-    private final List<Material> members = new ArrayList<>();
+    private final List<Runnable> memberAdditions = new ArrayList<>();
     private final List<String> tooltipLines = new ArrayList<>(2);
     private boolean built;
 
@@ -56,16 +55,17 @@ public final class FamilyBuilder {
 
     /// Adds a material to this family.
     public FamilyBuilder addMaterial(Material material) {
-        members.add(Objects.requireNonNull(material, "material must not be null"));
+        Objects.requireNonNull(material, "material must not be null");
+        memberAdditions.add(() -> registry.enqueueAddToFamily(material, modid, name));
         return this;
     }
 
     /// Adds a material to this family by key, deferring the lookup until the registry resolves. The material may
     /// be registered by any mod at any point during the registration event.
     public FamilyBuilder addMaterial(String materialModid, String materialName) {
-        memberKeys.add(
-            new String[] { Names.validate("material modid", materialModid),
-                Names.validate("material name", materialName) });
+        Names.validate("material modid", materialModid);
+        Names.validate("material name", materialName);
+        memberAdditions.add(() -> registry.enqueueAddToFamily(materialModid, materialName, modid, name));
         return this;
     }
 
@@ -90,12 +90,7 @@ public final class FamilyBuilder {
         }
         Family family = new Family(registry, modid, name, properties, shapes, tooltipLines);
         registry.register(family);
-        for (String[] memberKey : memberKeys) {
-            registry.enqueueAddToFamily(memberKey[0], memberKey[1], modid, name);
-        }
-        for (Material member : members) {
-            registry.enqueueAddToFamily(member, modid, name);
-        }
+        memberAdditions.forEach(Runnable::run);
         built = true;
         return family;
     }

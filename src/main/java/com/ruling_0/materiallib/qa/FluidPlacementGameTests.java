@@ -104,11 +104,16 @@ public class FluidPlacementGameTests {
         return use(helper, player, held, x + 0.5, 3.5, z + 0.5, 0, LOOK_DOWN);
     }
 
-    private static FillBucketEvent fillVanillaBucket(GameTestHelper helper, FakePlayer player, int x, int y, int z) {
+    /// Posts a vanilla bucket's [FillBucketEvent] at the test-local position, carrying `earlier` as the result an
+    /// earlier
+    /// handler set.
+    private static FillBucketEvent fillVanillaBucket(GameTestHelper helper, FakePlayer player, int x, int y, int z,
+                                                     Event.Result earlier) {
         int ax = helper.getOriginX() + x, ay = helper.getOriginY() + y, az = helper.getOriginZ() + z;
         MovingObjectPosition target = new MovingObjectPosition(ax, ay, az, 1,
             Vec3.createVectorHelper(ax + 0.5, ay + 1, az + 0.5));
         FillBucketEvent event = new FillBucketEvent(player, new ItemStack(Items.bucket), helper.getWorld(), target);
+        event.setResult(earlier);
         MinecraftForge.EVENT_BUS.post(event);
         return event;
     }
@@ -148,11 +153,11 @@ public class FluidPlacementGameTests {
         FakePlayer player = player(helper, "qa-fluids-pickup");
         Block iron = fluidBlock(stack(helper, "TestIron", "testBucket", 1));
         helper.setBlock(1, 1, 1, iron, 1);
-        FillBucketEvent flowing = fillVanillaBucket(helper, player, 1, 1, 1);
+        FillBucketEvent flowing = fillVanillaBucket(helper, player, 1, 1, 1, Event.Result.DEFAULT);
         helper.assertEquals(Event.Result.DEFAULT, flowing.getResult(), "bucket event at a flowing block");
 
         helper.setBlock(3, 1, 1, iron, 0);
-        FillBucketEvent source = fillVanillaBucket(helper, player, 3, 1, 1);
+        FillBucketEvent source = fillVanillaBucket(helper, player, 3, 1, 1, Event.Result.DEFAULT);
         helper.assertEquals(Event.Result.ALLOW, source.getResult(), "bucket event at a source block");
         helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 1), source.result, "filled bucket");
         helper.assertBlockPresent(Blocks.air, 3, 1, 1);
@@ -175,6 +180,8 @@ public class FluidPlacementGameTests {
         ItemStack left = use(helper, player, new ItemStack(Items.bucket), 1.5, 3.5, 1.5, 0, LOOK_DOWN);
         helper.assertBlockPresent(gold, 0, 1, 1, 1);
         helper.assertItemEqual(new ItemStack(Items.bucket), left, "hand after using a bucket on the source");
+        FillBucketEvent denied = fillVanillaBucket(helper, player, 1, 1, 1, Event.Result.DENY);
+        helper.assertTrue(denied.isCanceled(), "a bucket event denied by an earlier handler was not canceled");
         verified(helper, "vanilla bucket at a water-kind source");
     }
 

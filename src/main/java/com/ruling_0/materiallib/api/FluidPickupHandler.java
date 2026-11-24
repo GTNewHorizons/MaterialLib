@@ -18,7 +18,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 /// Lets vanilla buckets pick up placeable material fluids into placing containers, from a hand or a dispenser.
 ///
 /// No other use of a vanilla bucket picks up a [ShapeFluidBlock], so vanilla never takes a water or lava kind block as
-/// plain water or lava. The bucket handler runs last, so another mod's handler that fills the bucket first wins.
+/// plain water or lava. The bucket handler runs last: another mod's handler that fills the bucket first wins, and one
+/// that denies it leaves the block alone.
 public final class FluidPickupHandler {
 
     private FluidPickupHandler() {}
@@ -43,9 +44,13 @@ public final class FluidPickupHandler {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onFillBucket(FillBucketEvent event) {
         MovingObjectPosition target = event.target;
-        if (event.getResult() != Event.Result.DEFAULT || event.current == null || target == null ||
+        if (event.getResult() == Event.Result.ALLOW || event.current == null || target == null ||
             target.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return;
         if (!(event.world.getBlock(target.blockX, target.blockY, target.blockZ) instanceof ShapeFluidBlock)) return;
+        if (event.getResult() == Event.Result.DENY) {
+            event.setCanceled(true);
+            return;
+        }
         ItemStack filled = FluidPlacement.fillFrom(event.entityPlayer, event.world, target.blockX, target.blockY,
             target.blockZ, event.current);
         if (filled == null) {

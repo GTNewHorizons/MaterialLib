@@ -4,6 +4,7 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 
 import com.ruling_0.materiallib.MaterialLib;
+import com.ruling_0.materiallib.api.EmptyContainerHandle;
 import com.ruling_0.materiallib.api.Family;
 import com.ruling_0.materiallib.api.MaterialLibAPI;
 import com.ruling_0.materiallib.api.MaterialRegistrationEvent;
@@ -28,7 +29,8 @@ import cpw.mods.fml.common.registry.GameRegistry;
 /// icon. testOre and testFluid override their icon paths, and testBucket its untinted base icon. A consumer on
 /// testGear adds a shapeless recipe per material crafting its ingot into its gear, and lang overrides on
 /// TestGold show per-pair display names. TestGold is emissive and testOre sets emissive layers, so TestGold's
-/// testOre icon glows.
+/// testOre icon glows. TestIron and TestGold place their test fluid from testBucket, TestIron places testGas from
+/// testCanister, and TestGold's fluid burns what touches it.
 ///
 /// TestPalette draws column 1 of the `test` palette, a four-entry column short enough to merge the art's darker
 /// shades. Its ingot2 shape shows the composite: the numbered layers baked through the same column and the
@@ -88,13 +90,29 @@ public final class ExampleContent {
             .oreDict("bucket")
             .fluid(testFluid)
             .emptyContainer(new ItemStack(Items.bucket)).emptyIcon("minecraft:bucket_empty")
+            .placesFluid()
+            .build();
+
+        Shape testGas = MaterialLibAPI.newFluidShape(MaterialLib.MODID, "testGas")
+            .displayNameKey("format.materiallib.testGas")
+            .configureFluid((material, fluid) -> fluid.setGaseous(true).setDensity(-1000))
+            .iconPath("minecraft:water_still").build();
+
+        EmptyContainerHandle testCanisterEmpty = MaterialLibAPI
+            .registerEmptyContainer(MaterialLib.MODID, "testCanisterEmpty", "minecraft:bucket_empty");
+        Shape testCanister = MaterialLibAPI.newFluidInContainerShape(MaterialLib.MODID, "testCanister")
+            .displayNameKey("format.materiallib.testCanister")
+            .fluid(testGas)
+            .emptyContainer(testCanisterEmpty).emptyIcon("minecraft:bucket_empty")
+            .placesFluid()
             .build();
 
         Family testFamily = MaterialLibAPI.newFamily(MaterialLib.MODID, "Test").generateShape(testFrame).build();
 
         MaterialLibAPI.newMaterial(MaterialLib.MODID, "TestIron", test)
             .addToFamily(testFamily)
-            .generateShapes(testGear, ingot, block, testFluid, testBucket, testOre, ingot2)
+            .generateShapes(testGear, ingot, block, testFluid, testBucket, testOre, ingot2, testGas, testCanister)
+            .setPlaceable(testFluid, true).setPlaceable(testGas, true)
             .addTooltip("Iron strong")
             .build();
 
@@ -103,6 +121,7 @@ public final class ExampleContent {
             .setTint(0xFFFFD700).setLayerTints(0xFF00D0D3, 0xFF6F00D1)
             .setProperty(StandardProperties.EMISSIVE, true)
             .generateShapes(testGear, ingot, block, testFluid, testBucket, testOre, ingot2)
+            .setPlaceable(testFluid, true)
             .addTooltip("Shiny gold", "so shiny")
             .build();
 
@@ -117,6 +136,12 @@ public final class ExampleContent {
             ItemStack gear = MaterialLibAPI.getStack(material, shape, 1);
             ItemStack ingotStack = MaterialLibAPI.getStack(material, ingot, 1);
             GameRegistry.addShapelessRecipe(gear, ingotStack);
+        });
+
+        MaterialLibAPI.editShape(MaterialLib.MODID, "test").onFluidContact((material, world, x, y, z, entity) -> {
+            if (!"TestGold".equals(material.getName())) return false;
+            entity.setFire(2);
+            return true;
         });
     }
 }

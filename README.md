@@ -29,6 +29,21 @@ should suffice; however, more complex Shapes can extend
 `ShapeItem`/`ShapeBlock`/`ShapeFluid`/`ShapeFluidInContainer` to
 add custom behavior and register them through the API.
 
+A Material's fluid becomes placeable in the world through
+`setPlaceable` on its builder or a `MaterialEdit`, together with
+a container Shape built with `placesFluid()`. Only containers
+holding one bucket place their fluid. A placed fluid flows by
+its density by default: down when positive, up when negative.
+`FluidShapeBuilder#flow` sets the direction and distance
+instead. What a placed fluid does to entities, such as letting
+them swim or setting them on fire, follows its temperature and
+gas flag by default. `FluidShapeBuilder#blockKind` chooses it
+per Material instead. Behaviors attach through
+`editShape(...)` with `onFluidContact`, `onFluidTick` and
+`onFluidNeighborChange`. Each placeable pair registers its block
+as `materiallib:fluid.<fluidName>`, and turning a pair off
+removes that block from worlds.
+
 Registrations are handled through a `MaterialRegistrationEvent`
 handler. Subscribe the handler during `FMLConstructionEvent` and
 declare `required-after:materiallib`. MaterialLib fires the

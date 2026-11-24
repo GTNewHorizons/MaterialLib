@@ -4,8 +4,8 @@ import net.minecraftforge.fluids.Fluid;
 
 /// Chooses the [FluidBlockKind] of the block placed for one material's fluid.
 ///
-/// Set through [FluidShapeBuilder#blockKind] and invoked once per placeable material, before its block exists. Only the
-/// shape owner's chooser runs.
+/// Set through [FluidShapeBuilder#blockKind] or the [ShapeFluid] constructor, and invoked once per placeable material,
+/// before its block exists. Only the shape owner's chooser runs.
 @FunctionalInterface
 public interface FluidBlockKindChooser {
 

@@ -87,11 +87,11 @@ public class ShapeFluid implements ServedShape {
         this(modid, name, namer, configurer, iconPather, null, null);
     }
 
-    /// As [#ShapeFluid(String, String, FluidNamer, FluidConfigurer, IconPather)], additionally setting the
-    /// [FluidBlockKindChooser], where null means [FluidBlockKindChooser#DEFAULT], and the [FluidBlockConfigurer],
-    /// where null performs no extra configuration.
-    ShapeFluid(String modid, String name, FluidNamer namer, FluidConfigurer configurer, IconPather iconPather,
-               FluidBlockKindChooser kindChooser, FluidBlockConfigurer blockConfigurer) {
+    /// As [#ShapeFluid(String, String, FluidNamer, FluidConfigurer)], additionally setting this shape's [IconPather],
+    /// [FluidBlockKindChooser] and [FluidBlockConfigurer]. A null pather sets none, a null chooser defaults to
+    /// [FluidBlockKindChooser#DEFAULT], and a null block configurer performs no extra configuration.
+    protected ShapeFluid(String modid, String name, FluidNamer namer, FluidConfigurer configurer, IconPather iconPather,
+                         FluidBlockKindChooser kindChooser, FluidBlockConfigurer blockConfigurer) {
         this.modid = Names.validate("fluid shape modid", modid);
         this.name = Names.validate("fluid shape name", name);
         this.namer = namer != null ? namer : FluidNamer.DEFAULT;

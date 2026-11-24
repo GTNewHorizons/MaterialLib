@@ -1,5 +1,6 @@
 package com.ruling_0.materiallib.api;
 
+import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -143,11 +144,16 @@ final class PaletteArt {
             (AnimationMetadataSection) resource.getMetadata("animation"));
     }
 
-    /// The pixels of `image` as ARGB, row by row.
+    /// The pixels of `image` as ARGB, row by row. Gray samples are read as stored, keeping the high byte of a 16-bit
+    /// sample.
     static int[] argb(BufferedImage image) {
         int width = image.getWidth();
         int height = image.getHeight();
         int count = width * height;
+        ColorModel model = image.getColorModel();
+        if (model.getColorSpace().getType() == ColorSpace.TYPE_GRAY && model.getComponentSize(0) >= 8) {
+            return gray(image.getRaster(), model.getComponentSize(0) - 8, count);
+        }
         DataBuffer buffer = image.getRaster().getDataBuffer();
         if (image.getRaster().getParent() == null && buffer instanceof DataBufferByte bytes &&
             bytes.getNumBanks() == 1 && bytes.getOffset() == 0) {
@@ -182,6 +188,18 @@ final class PaletteArt {
             }
         }
         return image.getRGB(0, 0, width, height, null, 0, width);
+    }
+
+    private static int[] gray(Raster raster, int shift, int count) {
+        int bands = raster.getNumBands();
+        int[] samples = raster.getPixels(0, 0, raster.getWidth(), raster.getHeight(), (int[]) null);
+        int[] argb = new int[count];
+        for (int i = 0, j = 0; i < count; i++, j += bands) {
+            int gray = samples[j] >> shift;
+            int alpha = bands > 1 ? samples[j + 1] >> shift : 0xFF;
+            argb[i] = alpha << 24 | gray * 0x010101;
+        }
+        return argb;
     }
 
     /// An ARGB image drawn straight from `pixels`, row by row, without copying them.

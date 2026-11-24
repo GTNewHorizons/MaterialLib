@@ -13,9 +13,9 @@ import java.awt.image.WritableRaster;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.imageio.ImageIO;
 
@@ -31,7 +31,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /// Shape textures decoded once per stitch and shared by every [PaletteAtlasSprite] that bakes from them, together with
-/// the [Layout] of each shape's stack. Callers must not write to the arrays handed out.
+/// the [Layout] of each shape's stack. Safe for concurrent use. Callers must not write to the arrays handed out.
 ///
 /// A stack flattens into one sprite only when every texture in it has the base's size and animation timeline. Any other
 /// stack draws in passes, like the tint path.
@@ -55,9 +55,9 @@ final class PaletteArt {
         }
     }
 
-    private final Map<ResourceLocation, Texture> textures = new HashMap<>();
-    private final Map<ResourceLocation, IOException> failures = new HashMap<>();
-    private final Map<String, Layout> layouts = new HashMap<>();
+    private final Map<ResourceLocation, Texture> textures = new ConcurrentHashMap<>();
+    private final Map<ResourceLocation, IOException> failures = new ConcurrentHashMap<>();
+    private final Map<String, Layout> layouts = new ConcurrentHashMap<>();
 
     /// The texture at `location`, read from `manager` on first request. A texture that could not be read throws
     /// the same exception on every request.
@@ -82,12 +82,7 @@ final class PaletteArt {
     /// with no layers and no overlay.
     Layout layout(IResourceManager manager, boolean isItem, ShapeIcons.StackPaths stack) {
         String key = (isItem ? "items:" : "blocks:") + stack.base();
-        Layout layout = layouts.get(key);
-        if (layout == null) {
-            layout = findLayout(manager, isItem, stack);
-            layouts.put(key, layout);
-        }
-        return layout;
+        return layouts.computeIfAbsent(key, ignored -> findLayout(manager, isItem, stack));
     }
 
     /// The complete location of the texture at icon path `path` on the item atlas when `isItem`, the block atlas

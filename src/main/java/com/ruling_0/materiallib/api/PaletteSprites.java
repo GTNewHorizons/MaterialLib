@@ -41,7 +41,7 @@ public final class PaletteSprites {
 
     private static final Map<Material, Optional<MaterialPalette>> PALETTES = new ConcurrentHashMap<>();
 
-    private static PaletteArt art = new PaletteArt();
+    private static volatile PaletteArt art = new PaletteArt();
 
     @SubscribeEvent
     public void onTextureStitched(TextureStitchEvent.Post event) {

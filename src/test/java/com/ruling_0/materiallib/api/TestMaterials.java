@@ -10,12 +10,20 @@ final class TestMaterials {
 
     private TestMaterials() {}
 
-    /// A material named `name` declared by `modid` alone, in a registry of its own that has resolved.
+    /// A material named `name` declared by `modid` alone, in a registry of its own that has resolved. Its index is 0.
     static Material resolved(String modid, String name) {
+        return resolvedAll(modid, name)[0];
+    }
+
+    /// One material per name, all declared by `modid` in one registry that has resolved, so each has its own index.
+    static Material[] resolvedAll(String modid, String... names) {
         MaterialRegistry registry = new MaterialRegistry();
-        Material material = registry.newMaterial(modid, name, TextureSet.of(modid, "plain")).build();
+        Material[] materials = new Material[names.length];
+        for (int i = 0; i < names.length; i++) {
+            materials[i] = registry.newMaterial(modid, names[i], TextureSet.of(modid, "plain")).build();
+        }
         registry.resolve();
-        return material;
+        return materials;
     }
 
     /// Declares `name` for `modid` with exactly `properties` and no shapes, families, tooltip or overrides.

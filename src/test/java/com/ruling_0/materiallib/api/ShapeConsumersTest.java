@@ -26,8 +26,9 @@ class ShapeConsumersTest {
 
     @Test
     void consumersRunInRegistrationOrderAndMaterialsInBoundOrder() {
-        Material iron = material("Iron");
-        Material gold = material("Gold");
+        Material[] materials = TestMaterials.resolvedAll("testmod", "Iron", "Gold");
+        Material iron = materials[0];
+        Material gold = materials[1];
         TestShape gear = shape("gear", iron, gold);
         TestShape plate = shape("plate", gold);
 
@@ -76,8 +77,9 @@ class ShapeConsumersTest {
 
     @Test
     void aThrowingConsumerFailsNamingTheModidShapeAndMaterialAndAbortsDispatch() {
-        Material iron = material("Iron");
-        Material gold = material("Gold");
+        Material[] materials = TestMaterials.resolvedAll("testmod", "Iron", "Gold");
+        Material iron = materials[0];
+        Material gold = materials[1];
         TestShape gear = shape("gear", iron, gold);
         RuntimeException boom = new RuntimeException("boom");
         List<String> calls = new ArrayList<>();

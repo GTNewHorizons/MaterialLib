@@ -28,6 +28,16 @@ class PlaceableFluidTest {
     }
 
     @Test
+    void aFamilyMarksItsMembersPlaceable() {
+        ShapeFluid molten = new ShapeFluid("amod", "molten");
+        Family metals = registry.newFamily("amod", "Metals").setPlaceable(molten, true).build();
+        registry.newMaterial("amod", "TestIron", texture).addToFamily(metals).build();
+        registry.resolve();
+
+        assertTrue(FluidPlacement.isPlaceable(registry.getMaterial("amod", "TestIron"), molten));
+    }
+
+    @Test
     void anEditOverridesTheDeclaredPlaceability() {
         ShapeFluid molten = new ShapeFluid("amod", "molten");
         registry.newMaterial("amod", "TestIron", texture).setPlaceable(molten, true).build();

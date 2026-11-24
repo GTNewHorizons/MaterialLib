@@ -34,6 +34,12 @@ public final class FamilyBuilder {
         return setProperty(StandardProperties.TINT, tint);
     }
 
+    /// As [MaterialBuilder#setPlaceable], for all members that do not set their own.
+    public FamilyBuilder setPlaceable(Shape fluid, boolean placeable) {
+        FluidPlacement.requireFluidShape(fluid);
+        return setProperty(FluidPlacement.placeableProperty(fluid.getName()), placeable);
+    }
+
     /// Sets a property value for all members that do not set their own. Rejects [StandardProperties#TEXTURE_SET].
     public <T> FamilyBuilder setProperty(Property<T> property, T value) {
         StandardProperties.requireSettable(property, value);

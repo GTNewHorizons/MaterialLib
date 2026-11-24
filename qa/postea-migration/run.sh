@@ -6,12 +6,15 @@
 # on PATH; point POSTEA_QA_SERVER at it or pass --server <dir>.
 #
 #   run.sh all                  the whole gate: fresh v1 world -> seed old data -> shift boot -> idempotence
-#                               boot, failing on the first broken assertion; this is the CI entry point
+#                               boot -> boot without MaterialLib's transformer -> boot with it again -> boot
+#                               of a world without FML data, failing on the first broken assertion; this is
+#                               the CI entry point
 #   run.sh <phase>              one phase for hand-driving: world <name> | examples <true|false> | boot |
 #                               discover | seed <itemName> | assert-shift | assert-idempotent
 #
-# The in-session assertions live in MaterialLib's game-test batch materiallib.postea; a boot log must show
-# its "verified <storage>" lines, so a run whose seeds never took effect fails instead of passing vacuously.
+# Each boot runs only MaterialLib's game tests. The in-session assertions live in its batch materiallib.postea; a
+# boot log must show its "verified <storage>" lines, so a run whose seeds never took effect fails instead of passing
+# vacuously.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -28,9 +31,13 @@ SERVER="$(cd "$SERVER" && pwd)"
 
 WORLD_NAME=PosteaQA
 WORLD="$SERVER/$WORLD_NAME"
+VANILLA_WORLD_NAME=PosteaQA-vanilla
 LOGS="$SERVER/postea-qa-logs"
 WITNESS_ITEM="${POSTEA_QA_ITEM:-materiallib:ingot}"
-STORAGES=(backpack "enderstorage:global" "openblocks:inventory" "gregtech:linkedInputBusses" chunk player)
+STORAGES=(backpack "enderstorage:global" "openblocks:inventory" "gregtech:linkedInputBusses" chunk player baubles
+    cosarmor "forestry:POBox" "forestry:TradePO")
+TESTS=materiallib
+PLAYER_FILES_TEST=materiallib:PosteaMigrationGameTests.seededPlayerFilesHoldTheWitnessMaterial
 
 set_world() {
     sed -i "s/^level-name=.*/level-name=$1/" "$SERVER/server.properties"
@@ -40,22 +47,25 @@ set_examples() {
     sed -i "s/B:registerExamples=.*/B:registerExamples=$1/" "$SERVER/config/materiallib.cfg"
 }
 
+# boot <label> <test selector> [jvm args...]
 boot() {
-    local log="$LOGS/boot-$1.log"
+    local label="$1" tests="$2" log="$LOGS/boot-$1.log"
+    shift 2
     mkdir -p "$LOGS"
     # A crashed boot writes no report; a leftover one from an earlier run must not pass for it.
     rm -f "$SERVER/horizonqa-result.json"
     (
         cd "$SERVER"
         timeout 2400 java -Xms6G -Xmx6G -Dfml.readTimeout=180 -Dfml.queryResult=confirm @java9args.txt \
-            -Dhorizonqa.mode=ci -jar lwjgl3ify-forgePatches.jar nogui < /dev/null > "$log" 2>&1
+            -Dhorizonqa.mode=ci "-Dhorizonqa.tests=$tests" "$@" -jar lwjgl3ify-forgePatches.jar nogui \
+            < /dev/null > "$log" 2>&1
     )
     local code=$?
-    echo "boot $1: server exited $code ($log)"
+    echo "boot $label: server exited $code ($log)"
     # The report path travels as an argument: Git Bash converts argument paths for a native python, but
     # never paths embedded in the -c string.
     [[ -f "$SERVER/horizonqa-result.json" ]] || {
-        echo "boot $1: no HorizonQA report (server crashed?); see $log" >&2
+        echo "boot $label: no HorizonQA report (server crashed?); see $log" >&2
         return 1
     }
     python -c "
@@ -63,14 +73,18 @@ import json, sys
 d = json.load(open(sys.argv[1]))
 c = d['counts']
 print(sys.argv[2] + ':', d['status'], 'selected', c['selectedTests'], 'passed', c['passed'], 'failed', c['failed'])
-sys.exit(0 if d['status'] == 'passed' and c['failed'] == 0 else 1)" "$SERVER/horizonqa-result.json" "boot $1"
+sys.exit(0 if d['status'] == 'passed' and c['failed'] == 0 else 1)" "$SERVER/horizonqa-result.json" "boot $label"
 }
 
+# require_verified <label> [storages...], all of STORAGES by default
 require_verified() {
-    local log="$LOGS/boot-$1.log" missing=0
-    for storage in "${STORAGES[@]}"; do
+    local label="$1" log="$LOGS/boot-$1.log" missing=0
+    shift
+    local storages=("$@")
+    [[ ${#storages[@]} -gt 0 ]] || storages=("${STORAGES[@]}")
+    for storage in "${storages[@]}"; do
         if ! grep -q "\[materiallib\.postea\] verified $storage" "$log"; then
-            echo "boot $1: no in-session verification of $storage (vacuous or failed)" >&2
+            echo "boot $label: no in-session verification of $storage (vacuous or failed)" >&2
             missing=1
         fi
     done
@@ -100,21 +114,44 @@ case "${1:?usage: run.sh [--server <dir>] <all|world|examples|boot|discover|seed
         set_examples false
         rm -rf "$WORLD"
 
-        boot 1 || exit 1
-        grep -q "\[materiallib\.postea\] seeded chunk witnesses" "$LOGS/boot-1.log" || {
-            echo "boot 1 did not seed the chunk witnesses" >&2
-            exit 1
-        }
+        boot 1 "$TESTS" || exit 1
+        for seeded in chunk forestry; do
+            grep -q "\[materiallib\.postea\] seeded $seeded witnesses" "$LOGS/boot-1.log" || {
+                echo "boot 1 did not seed the $seeded witnesses" >&2
+                exit 1
+            }
+        done
         python "$HERE/seed.py" seed "$WORLD" "$WITNESS_ITEM" || exit 1
 
         set_examples true
-        boot 2 || exit 1
+        boot 2 "$TESTS" || exit 1
         python "$HERE/seed.py" assert-shift "$WORLD" || exit 1
         require_verified 2 || exit 1
 
-        boot 3 || exit 1
+        boot 3 "$TESTS" || exit 1
         python "$HERE/seed.py" assert-idempotent "$WORLD" || exit 1
         require_verified 3 || exit 1
+
+        # Saves made while MaterialLib's transformer is not registered must keep its stamps, so nothing migrates again
+        # once it returns. Only the player files test runs: without the transformer the read-only seeds stay old.
+        absent_since=$(date +%s)
+        boot 4 "$PLAYER_FILES_TEST" -Dmateriallib.qa.withoutPosteaMigration=true || exit 1
+        python "$HERE/seed.py" assert-carried "$WORLD" "$absent_since" || exit 1
+        require_verified 4 baubles cosarmor || exit 1
+
+        boot 5 "$TESTS" || exit 1
+        python "$HERE/seed.py" assert-idempotent "$WORLD" || exit 1
+        require_verified 5 || exit 1
+
+        # A world without FML data gets no id remap. The first EnderStorage lookup must still be transformed.
+        rm -rf "${SERVER:?}/$VANILLA_WORLD_NAME"
+        python "$HERE/seed.py" vanilla "$WORLD" "$SERVER/$VANILLA_WORLD_NAME" || exit 1
+        set_world "$VANILLA_WORLD_NAME"
+        boot vanilla "$TESTS" || exit 1
+        grep -q "materiallib:idList is bringing saved data from version unstamped" "$LOGS/boot-vanilla.log" || {
+            echo "boot vanilla transformed no custom data" >&2
+            exit 1
+        }
 
         echo "postea migration gate: PASS"
         ;;
@@ -127,7 +164,7 @@ case "${1:?usage: run.sh [--server <dir>] <all|world|examples|boot|discover|seed
         grep registerExamples "$SERVER/config/materiallib.cfg"
         ;;
     boot)
-        boot "${2:-manual}"
+        boot "${2:-manual}" "$TESTS"
         ;;
     discover|assert-shift|assert-idempotent)
         python "$HERE/seed.py" "$1" "$WORLD"

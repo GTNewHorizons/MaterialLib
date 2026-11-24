@@ -5,12 +5,19 @@ Subcommands (all take the world directory as the first argument):
   discover              print the material list version, the witness material's index, and the
                         materiallib item names in the world's saved id map
   seed <itemName>       write old-version witness stacks into EnderStorage, a Backpack file, an
-                        OpenBlocks death dump, the GT linked-input-bus table, a player tag, and
-                        the quest database, plus an EnderStorage stack of a shape-overridden pair;
-                        records expectations in <world>/postea-qa-expect.json
-  assert-shift          after the examples-on boot: the store advanced one version and the quest
-                        database's witness entries were remapped and stamped
+                        OpenBlocks death dump, the GT linked-input-bus table, a player tag, Baubles
+                        and Cosmetic Armor files, the quest database and a quest loot group, plus an
+                        EnderStorage stack of a shape-overridden pair; records expectations in
+                        <world>/postea-qa-expect.json
+  assert-shift          after the examples-on boot: the store advanced one version, and the witness
+                        entries of the quest database, quest loot and player files were remapped and
+                        stamped
   assert-idempotent     after an unchanged boot: nothing moved again
+  assert-carried <epoch>
+                        after a boot without MaterialLib's transformer: the quest database, quest loot
+                        and player files were rewritten after <epoch> and kept their stamps
+  vanilla <dstWorld>    copy the world's level.dat into an empty <dstWorld> without its FML and Forge
+                        data, as a world made by vanilla Minecraft has
 """
 import gzip, io, json, struct, sys, os
 
@@ -84,6 +91,11 @@ WITNESS = os.environ.get('POSTEA_QA_MATERIAL', 'Tin')
 # with -Dmateriallib.qa.overrideItem.
 OVERRIDE_MATERIAL = os.environ.get('POSTEA_QA_OVERRIDE_MATERIAL', 'Iron')
 UUID = '11111111-2222-3333-4444-555555555555'
+# The player whose Baubles and Cosmetic Armor files PosteaMigrationGameTests loads.
+FILES_PLAYER, FILES_UUID = 'qa-postea-files', '11111111-2222-3333-4444-666666666666'
+# A stamp for a transformer that is never registered; PosteaMigrationGameTests requires saves to carry it.
+ABSENT_STAMP = ('postea_qa:absent', 7)
+STAMP_KEY = 'materiallib:idList'
 
 def expect_file(world):
     return os.path.join(world, 'postea-qa-expect.json')
@@ -113,6 +125,27 @@ def stack(item, damage, slot_tag):
 def quest_db(world):
     return os.path.join(world, 'betterquesting', 'QuestDatabase.json')
 
+def quest_loot(world):
+    return os.path.join(world, 'QuestLoot.json')
+
+def player_files(world):
+    playerdata = os.path.join(world, 'playerdata')
+    return {'baubles': (os.path.join(playerdata, FILES_PLAYER + '.baub'), 'Baubles.Inventory'),
+            'cosarmor': (os.path.join(playerdata, FILES_UUID + '.cosarmor'), 'CosArmor.Inventory')}
+
+def read_json(path):
+    with open(path, encoding='utf8') as fh:
+        return json.load(fh)
+
+def json_stamp(data):
+    return data.get('POSTEA_VERSIONS:10', {}).get(STAMP_KEY + ':3')
+
+def player_file_state(path, list_key):
+    # The (id, damage) of the file's slot 0 stack and its material list stamp.
+    data = read_nbt(gzip.decompress(open(path, 'rb').read()))
+    slot = data[list_key][0]
+    return (slot['id'], slot['Damage']), data.get('POSTEA_VERSIONS', {}).get(STAMP_KEY)
+
 def find_seed_entry(db):
     # The first requiredItems slot of any quest, which the seeded witness replaces.
     for quest in db.get('questDatabase:9', {}).values():
@@ -127,6 +160,9 @@ def find_seed_entry(db):
 def witness_damages(db, item):
     # Every stack of the witness item anywhere in the quest database. Quest order is not stable, since dreamcraft
     # reimports the default database whenever it decides the modpack changed.
+    return json_witness_damages(db.get('questDatabase:9', {}), item)
+
+def json_witness_damages(node, item):
     out = []
     def walk(node):
         if isinstance(node, dict):
@@ -134,7 +170,7 @@ def witness_damages(db, item):
                 out.append(node['Damage:2'])
             for v in node.values():
                 walk(v)
-    walk(db.get('questDatabase:9', {}))
+    walk(node)
     return out
 
 # ---------- subcommands ----------
@@ -190,8 +226,24 @@ def seed(world, item_name):
         ('Pos', zeros3),
         ('Motion', zeros3),
         ('Rotation', t_list(5, [t_float(0.0)[1]] * 2)),
-        ('Inventory', t_list(10, [stack(numeric, old_index, ('Slot', t_byte(0)))[1]]))]
+        ('Inventory', t_list(10, [stack(numeric, old_index, ('Slot', t_byte(0)))[1]])),
+        ('POSTEA_VERSIONS', t_comp([(ABSENT_STAMP[0], t_int(ABSENT_STAMP[1]))]))]
     open(os.path.join(world, 'qa-postea-player.dat'), 'wb').write(nbt_file(player))
+
+    files = player_files(world)
+    os.makedirs(os.path.dirname(files['baubles'][0]), exist_ok=True)
+    open(files['baubles'][0], 'wb').write(
+        nbt_file([('Baubles.Inventory', t_list(10, [stack(numeric, old_index, ('Slot', t_byte(0)))[1]]))]))
+    open(files['cosarmor'][0], 'wb').write(nbt_file([
+        ('CosArmor.Inventory.Size', t_int(4)),
+        ('CosArmor.Inventory', t_list(10, [stack(numeric, old_index, ('Slot', t_byte(0)))[1]]))]))
+
+    loot = read_json(quest_loot(world)) if os.path.isfile(quest_loot(world)) else {}
+    reward = {'ID:3': 0, 'weight:3': 1,
+              'items:9': {'0:10': {'Damage:2': old_index, 'Count:3': 1, 'id:8': item_name, 'OreDict:8': ''}}}
+    loot['groups:9'] = {'0:10': {'ID:3': 0, 'name:8': 'qa-postea', 'weight:3': 1, 'rewards:9': {'0:10': reward}}}
+    with open(quest_loot(world), 'w', encoding='utf8') as fh:
+        json.dump(loot, fh, indent=2)
 
     with open(quest_db(world), encoding='utf8') as fh:
         db = json.load(fh)
@@ -204,7 +256,7 @@ def seed(world, item_name):
          'before': sorted(witness_damages(db, item_name))},
         open(expect_file(world), 'w'),
         indent=2)
-    print('seeded: %s (%s) id=%d oldIndex=%d; quest witness entry planted'
+    print('seeded: %s (%s) id=%d oldIndex=%d; quest and loot witness entries planted'
           % (WITNESS, item_name, numeric, old_index))
 
 def assert_shift(world):
@@ -227,13 +279,24 @@ def assert_shift(world):
     expected = sorted(moved.get(str(d), d) for d in exp['before'])
     assert sorted(damages) == expected, \
         'quest entries do not match their v1-to-v2 remap: %d found, %d expected' % (len(damages), len(expected))
-    stamps = db.get('POSTEA_VERSIONS:10', {})
-    assert stamps.get('materiallib:idList:3') == 2, 'quest DB stamp: %r' % stamps
+    assert json_stamp(db) == 2, 'quest DB stamp: %r' % db.get('POSTEA_VERSIONS:10')
     exp['newIndex'] = new_index
     exp['after'] = sorted(damages)
     json.dump(exp, open(expect_file(world), 'w'), indent=2)
-    print('shift verified: %d quest entries remapped, witness at new index %d, DB stamped v2'
+    assert_side_storages(world, exp)
+    print('shift verified: %d quest entries remapped, witness at new index %d, DB, loot and player files stamped v2'
           % (len(damages), new_index))
+
+def assert_side_storages(world, exp):
+    # The quest loot and the player files rewritten in-session hold the witness at its new index, stamped v2.
+    loot = read_json(quest_loot(world))
+    assert json_witness_damages(loot, exp['item']) == [exp['newIndex']], \
+        'quest loot witness: %r' % json_witness_damages(loot, exp['item'])
+    assert json_stamp(loot) == 2, 'quest loot stamp: %r' % loot.get('POSTEA_VERSIONS:10')
+    for name, (path, list_key) in player_files(world).items():
+        slot, stamp = player_file_state(path, list_key)
+        assert slot == (exp['numericId'], exp['newIndex']), '%s witness: %r' % (name, slot)
+        assert stamp == 2, '%s stamp: %r' % (name, stamp)
 
 def assert_idempotent(world):
     exp = json.load(open(expect_file(world)))
@@ -242,8 +305,53 @@ def assert_idempotent(world):
     db = json.load(open(quest_db(world), encoding='utf8'))
     damages = witness_damages(db, exp['item'])
     assert sorted(damages) == exp['after'], 'quest entries moved again on the idempotence boot'
-    assert db.get('POSTEA_VERSIONS:10', {}).get('materiallib:idList:3') == 2
+    assert json_stamp(db) == 2
+    assert_side_storages(world, exp)
     print('idempotence verified: %d quest entries unchanged, witness still at %d' % (len(damages), exp['newIndex']))
+
+def assert_carried(world, since):
+    paths = [quest_db(world), quest_loot(world)] + [path for path, _ in player_files(world).values()]
+    stale = [p for p in paths if os.path.getmtime(p) <= since]
+    assert not stale, 'not rewritten by the boot without the transformer: %r' % stale
+    assert_idempotent(world)
+    print('carried stamps verified: quest DB, loot and player files rewritten without the transformer, still v2')
+
+def vanilla(world, dst):
+    # Keeps only the root's Data compound. The walker skips payloads without decoding them, so Data is copied byte
+    # for byte.
+    raw = gzip.decompress(open(os.path.join(world, 'level.dat'), 'rb').read())
+    f = io.BytesIO(raw)
+    def skip(t):
+        sizes = {1: 1, 2: 2, 3: 4, 4: 8, 5: 4, 6: 8}
+        if t in sizes: f.read(sizes[t])
+        elif t == 7: f.read(struct.unpack('>i', f.read(4))[0])
+        elif t == 8: f.read(struct.unpack('>H', f.read(2))[0])
+        elif t == 9:
+            et = f.read(1)[0]
+            for _ in range(struct.unpack('>i', f.read(4))[0]): skip(et)
+        elif t == 10:
+            while True:
+                ct = f.read(1)[0]
+                if ct == 0: return
+                f.read(struct.unpack('>H', f.read(2))[0])
+                skip(ct)
+        elif t == 11: f.read(4 * struct.unpack('>i', f.read(4))[0])
+        else: raise ValueError('tag %d' % t)
+    assert f.read(1)[0] == 10
+    f.read(struct.unpack('>H', f.read(2))[0])
+    kept, dropped = b'', []
+    while True:
+        start = f.tell()
+        t = f.read(1)[0]
+        if t == 0: break
+        name = f.read(struct.unpack('>H', f.read(2))[0]).decode('utf8')
+        skip(t)
+        if name == 'Data': kept += raw[start:f.tell()]
+        else: dropped.append(name)
+    assert kept, 'level.dat has no Data compound'
+    os.makedirs(dst)
+    open(os.path.join(dst, 'level.dat'), 'wb').write(gzip.compress(b'\x0a' + _ws('') + kept + b'\x00'))
+    print('vanilla world written to %s; dropped %r from level.dat' % (dst, dropped))
 
 if __name__ == '__main__':
     cmd, world = sys.argv[1], sys.argv[2]
@@ -251,4 +359,6 @@ if __name__ == '__main__':
     elif cmd == 'seed': seed(world, sys.argv[3])
     elif cmd == 'assert-shift': assert_shift(world)
     elif cmd == 'assert-idempotent': assert_idempotent(world)
+    elif cmd == 'assert-carried': assert_carried(world, float(sys.argv[3]))
+    elif cmd == 'vanilla': vanilla(world, sys.argv[3])
     else: raise SystemExit('unknown command ' + cmd)

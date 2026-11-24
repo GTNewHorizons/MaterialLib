@@ -3,10 +3,12 @@ package com.ruling_0.materiallib.qa;
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.UUID;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.IInventory;
@@ -15,9 +17,12 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.World;
 import net.minecraft.world.WorldSavedData;
 import net.minecraft.world.WorldServer;
+import net.minecraft.world.storage.IPlayerFileData;
 
+import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.FakePlayerFactory;
 
 import com.gtnewhorizons.horizonqa.api.GameTestHelper;
@@ -38,12 +43,13 @@ import openblocks.common.PlayerInventoryStore;
 /// storage.
 ///
 /// `qa/postea-migration/run.sh` seeds each storage with a witness stack saved under an older material id list
-/// version. Each test reads the storage through the owning mod's load path and asserts the stack holds the
-/// witness material at the current list version. A test with no seed is skipped. The harness requires a "verified"
-/// log line from every test.
+/// version. The chunk and Forestry tests seed their own storages on the first boot instead. Each test reads the
+/// storage through the owning mod's load path and asserts the stack holds the witness material at the current list
+/// version. A test with no seed is skipped. The harness requires a "verified" log line from every test.
 @GameTestHolder(
                 value = MaterialLib.MODID,
-                requiredMods = { "postea", "EnderStorage", "OpenBlocks", "Backpack", "gregtech" })
+                requiredMods = { "postea", "EnderStorage", "OpenBlocks", "Backpack", "gregtech", "Baubles",
+                    "cosmeticarmorreworked", "Forestry" })
 public class PosteaMigrationGameTests {
 
     private static final String BATCH = "materiallib.postea";
@@ -55,6 +61,19 @@ public class PosteaMigrationGameTests {
     /// The registry name of the item overriding that pair.
     private static final String OVERRIDE_ITEM = System.getProperty("materiallib.qa.overrideItem",
         "minecraft:iron_ingot");
+
+    /// The player whose Baubles and Cosmetic Armor files the harness seeds.
+    private static final GameProfile FILES_PLAYER = new GameProfile(
+        UUID.fromString("11111111-2222-3333-4444-666666666666"),
+        "qa-postea-files");
+    /// The player of the seeded player tag, who also owns the Forestry post box and trade station.
+    private static final GameProfile PLAYER = new GameProfile(
+        UUID.fromString("11111111-2222-3333-4444-555555555555"),
+        "qa-postea");
+    private static final String TRADER = "qapostea";
+    /// A stamp the harness seeds on the player tag for a transformer that is never registered. Saves must carry it.
+    private static final String ABSENT_STAMP_KEY = "postea_qa:absent";
+    private static final int ABSENT_STAMP_VERSION = 7;
 
     /// Where the chunk test keeps its witness block and chest across boots: inside the always-loaded spawn area,
     /// below the test grid.
@@ -78,12 +97,13 @@ public class PosteaMigrationGameTests {
         helper.assumeTrue(false, "no seed for " + storage);
     }
 
-    private static void verified(GameTestHelper helper, String storage) {
-        MaterialLib.LOG.info("[{}] verified {}", BATCH, storage);
+    private static void verified(GameTestHelper helper, String... storages) {
+        for (String storage : storages) MaterialLib.LOG.info("[{}] verified {}", BATCH, storage);
         helper.succeed();
     }
 
     private static void assertWitnessStack(GameTestHelper helper, ItemStack actual, String storage) {
+        helper.assertTrue(actual != null, storage + " slot is empty");
         ItemStack expected = witness(helper);
         helper.assertEquals(expected.getItem(), actual.getItem(), storage + " item");
         helper.assertEquals(expected.getItemDamage(), actual.getItemDamage(), storage + " damage");
@@ -124,10 +144,7 @@ public class PosteaMigrationGameTests {
             unseeded(helper, "openblocks:inventory");
             return;
         }
-        IInventory inventory = loaded.mainInventory;
-        ItemStack actual = inventory.getStackInSlot(0);
-        helper.assertTrue(actual != null, "seeded dump slot 0 is empty");
-        assertWitnessStack(helper, actual, "openblocks:inventory");
+        assertWitnessStack(helper, loaded.mainInventory.getStackInSlot(0), "openblocks:inventory");
         verified(helper, "openblocks:inventory");
     }
 
@@ -177,9 +194,7 @@ public class PosteaMigrationGameTests {
         Field stacksField = shared.getClass()
             .getDeclaredField("stacks");
         stacksField.setAccessible(true);
-        ItemStack actual = ((ItemStack[]) stacksField.get(shared))[0];
-        helper.assertTrue(actual != null, "seeded channel slot 0 is empty");
-        assertWitnessStack(helper, actual, "gregtech:linkedInputBusses");
+        assertWitnessStack(helper, ((ItemStack[]) stacksField.get(shared))[0], "gregtech:linkedInputBusses");
         verified(helper, "gregtech:linkedInputBusses");
     }
 
@@ -210,14 +225,13 @@ public class PosteaMigrationGameTests {
             "chunk block metadata");
         IInventory chest = (IInventory) world.getTileEntity(CHUNK_X + 1, CHUNK_Y, CHUNK_Z);
         helper.assertTrue(chest != null, "witness chest is missing");
-        ItemStack stored = chest.getStackInSlot(0);
-        helper.assertTrue(stored != null, "witness chest slot 0 is empty");
-        assertWitnessStack(helper, stored, "chunk chest stack");
+        assertWitnessStack(helper, chest.getStackInSlot(0), "chunk chest stack");
         verified(helper, "chunk");
     }
 
     /// Loads the seeded player tag into a fake player through `Entity.readFromNBT`, the hook real player files take,
-    /// and checks the witness stack. Then writes the player back out and checks its version stamp.
+    /// and checks the witness stack. Then respawns the player into a fresh one, as a death does, writes that one out
+    /// and checks its version stamps.
     @GameTest(batch = BATCH)
     public static void seededPlayerDataHoldsTheWitnessMaterial(GameTestHelper helper) throws Exception {
         File file = new File(
@@ -232,19 +246,92 @@ public class PosteaMigrationGameTests {
         try (FileInputStream stream = new FileInputStream(file)) {
             tag = CompressedStreamTools.readCompressed(stream);
         }
-        EntityPlayerMP player = FakePlayerFactory.get(
-            overworld(),
-            new GameProfile(UUID.fromString("11111111-2222-3333-4444-555555555555"), "qa-postea"));
+        EntityPlayerMP player = FakePlayerFactory.get(overworld(), PLAYER);
         player.readFromNBT(tag);
-        ItemStack held = player.inventory.getStackInSlot(0);
-        helper.assertTrue(held != null, "seeded player slot 0 is empty");
-        assertWitnessStack(helper, held, "player inventory");
+        assertWitnessStack(helper, player.inventory.getStackInSlot(0), "player inventory");
+        EntityPlayerMP respawned = new FakePlayer(overworld(), player.getGameProfile());
+        respawned.clonePlayer(player, false);
         NBTTagCompound out = new NBTTagCompound();
-        player.writeToNBT(out);
+        respawned.writeToNBT(out);
+        NBTTagCompound stamps = VersionStamps.read(out);
         helper.assertEquals(
             WorldMaterialIds.currentListVersion(),
-            VersionStamps.stored(VersionStamps.read(out), "materiallib:idList"),
-            "player stamp");
+            VersionStamps.stored(stamps, "materiallib:idList"),
+            "respawned player stamp");
+        helper.assertEquals(
+            ABSENT_STAMP_VERSION,
+            VersionStamps.stored(stamps, ABSENT_STAMP_KEY),
+            "respawned player stamp of an unregistered transformer");
         verified(helper, "player");
+    }
+
+    /// Loads a player through the server's player file handler, as a login does, which also reads the seeded Baubles
+    /// and Cosmetic Armor files, and checks the witness in both. Then saves the player as a logout does.
+    @GameTest(batch = BATCH)
+    public static void seededPlayerFilesHoldTheWitnessMaterial(GameTestHelper helper) throws Exception {
+        File playerDirectory = new File(
+            overworld().getSaveHandler()
+                .getWorldDirectory(),
+            "playerdata");
+        if (!new File(playerDirectory, FILES_PLAYER.getName() + ".baub").isFile()) {
+            unseeded(helper, "baubles");
+            return;
+        }
+        EntityPlayerMP player = new FakePlayer(overworld(), FILES_PLAYER);
+        IPlayerFileData files = overworld().getSaveHandler()
+            .getSaveHandler();
+        files.readPlayerData(player);
+        IInventory baubles = (IInventory) Class.forName("baubles.common.lib.PlayerHandler")
+            .getMethod("getPlayerBaubles", EntityPlayer.class)
+            .invoke(null, player);
+        Object cosmeticArmor = Class.forName("lain.mods.cos.CosmeticArmorReworked")
+            .getField("invMan")
+            .get(null);
+        IInventory cosmetics = (IInventory) cosmeticArmor.getClass()
+            .getMethod("getCosArmorInventory", UUID.class)
+            .invoke(cosmeticArmor, FILES_PLAYER.getId());
+        assertWitnessStack(helper, baubles.getStackInSlot(0), "baubles");
+        assertWitnessStack(helper, cosmetics.getStackInSlot(0), "cosarmor");
+        files.writePlayerData(player);
+        verified(helper, "baubles", "cosarmor");
+    }
+
+    /// Checks a Forestry post box and trade station, seeding them itself. The first run stores the witness in both and
+    /// reports itself skipped. Later runs read both back through Forestry's post registry.
+    @GameTest(batch = BATCH)
+    public static void forestryMailKeepsTheWitnessMaterial(GameTestHelper helper) throws Exception {
+        World world = overworld();
+        Object registry = Class.forName("forestry.api.mail.PostManager")
+            .getField("postRegistry")
+            .get(null);
+        Class<?> registryType = Class.forName("forestry.api.mail.IPostRegistry");
+        Class<?> addressType = Class.forName("forestry.api.mail.IMailAddress");
+        Class<?> postRegistry = Class.forName("forestry.mail.PostRegistry");
+        Object boxAddress = registryType.getMethod("getMailAddress", GameProfile.class)
+            .invoke(registry, PLAYER);
+        Object tradeAddress = registryType.getMethod("getMailAddress", String.class)
+            .invoke(registry, TRADER);
+        IInventory box = (IInventory) postRegistry.getMethod("getPOBox", World.class, addressType)
+            .invoke(null, world, boxAddress);
+        if (box == null) {
+            box = (IInventory) postRegistry.getMethod("getOrCreatePOBox", World.class, addressType)
+                .invoke(null, world, boxAddress);
+            Method createTrade = registryType
+                .getMethod("getOrCreateTradeStation", World.class, GameProfile.class, addressType);
+            IInventory trade = (IInventory) createTrade.invoke(registry, world, PLAYER, tradeAddress);
+            box.setInventorySlotContents(0, witness(helper));
+            trade.setInventorySlotContents(0, witness(helper));
+            ((WorldSavedData) box).markDirty();
+            ((WorldSavedData) trade).markDirty();
+            MaterialLib.LOG.info("[{}] seeded forestry witnesses", BATCH);
+            helper.assumeTrue(false, "seeded the Forestry witnesses; the next boot verifies them");
+            return;
+        }
+        IInventory trade = (IInventory) registryType.getMethod("getTradeStation", World.class, addressType)
+            .invoke(registry, world, tradeAddress);
+        helper.assertTrue(trade != null, "seeded trade station is missing");
+        assertWitnessStack(helper, box.getStackInSlot(0), "forestry:POBox");
+        assertWitnessStack(helper, trade.getStackInSlot(0), "forestry:TradePO");
+        verified(helper, "forestry:POBox", "forestry:TradePO");
     }
 }

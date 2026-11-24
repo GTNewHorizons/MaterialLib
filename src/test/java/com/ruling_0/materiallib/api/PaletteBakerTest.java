@@ -29,7 +29,7 @@ class PaletteBakerTest {
     /// Each pixel takes the color of the row indexing its HSV value, and a value that no row indexes takes the last
     /// entry.
     @Test
-    void pixelsTakeTheColorOfTheirIndexRowAndUnlistedLevelsTheLastEntry() {
+    void pixelsTakeTheColorOfTheirIndexRowAndUnlistedHsvValuesTheLastEntry() {
         IndexedImage art = PaletteBaker.index(new int[] { 0xFFFFFFFF, 0xFF808080, 0xFF202020, 0xFF7F7F7F }, 2, 2);
         PaletteBaker.Palette palette = palette(new int[] { 0xFF202020, RED }, new int[] { 0xFFFFFFFF, GREEN },
             new int[] { 0xFF808080, BLUE });
@@ -38,7 +38,7 @@ class PaletteBakerTest {
     }
 
     /// Art and index pixels reduce to their brightest channel, so a channel off by a unit still finds its row, and
-    /// hue never separates two pixels of one level.
+    /// hue never separates two pixels of one HSV value.
     @Test
     void pixelsMatchByTheirBrightestChannel() {
         IndexedImage art = PaletteBaker.index(new int[] { 0xFF909190, 0xFF919191, 0xFF0000FF }, 3, 1);
@@ -58,7 +58,7 @@ class PaletteBakerTest {
         assertArrayEquals(new int[] { 0x80AA0000, 0 }, PaletteBaker.bake(art, palette));
     }
 
-    /// The first row wins a repeated level, a transparent index pixel matches nothing but can still be the default,
+    /// The first row wins a repeated HSV value, a transparent index pixel matches nothing but can still be the default,
     /// and trailing rows with a transparent color are not entries.
     @Test
     void paletteRowsReadTopToBottom() {

@@ -75,8 +75,7 @@ public class PosteaMigrationGameTests {
     private static final String ABSENT_STAMP_KEY = "postea_qa:absent";
     private static final int ABSENT_STAMP_VERSION = 7;
 
-    /// Where the chunk test keeps its witness block and chest across boots: inside the always-loaded spawn area,
-    /// below the test grid.
+    /// Where the chunk test keeps its witness block and chest across boots, below the test grid.
     private static final int CHUNK_X = 40, CHUNK_Y = 5, CHUNK_Z = 40;
 
     /// Returns the stack a seeded slot should hold: the witness material's shape stack at the current list version.
@@ -209,6 +208,7 @@ public class PosteaMigrationGameTests {
             helper.fail("Witness " + WITNESS_MATERIAL + ":" + WITNESS_BLOCK_SHAPE + " does not resolve");
         }
         Block block = Block.getBlockFromItem(blockStack.getItem());
+        world.theChunkProviderServer.loadChunk(CHUNK_X >> 4, CHUNK_Z >> 4);
         if (world.getBlock(CHUNK_X, CHUNK_Y, CHUNK_Z) != block) {
             world.setBlock(CHUNK_X, CHUNK_Y, CHUNK_Z, block, blockStack.getItemDamage(), 2);
             world.setBlock(CHUNK_X + 1, CHUNK_Y, CHUNK_Z, Blocks.chest, 0, 2);

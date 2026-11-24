@@ -10,8 +10,8 @@ import java.util.Set;
 
 import net.minecraft.nbt.NBTTagCompound;
 
-import com.gtnewhorizons.postea.api.ChunkTransformContext;
 import com.gtnewhorizons.postea.api.IDExtenderCompat;
+import com.gtnewhorizons.postea.api.IVersionedTransformer;
 import com.ruling_0.materiallib.api.MaterialIdTransitions;
 
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -87,7 +87,7 @@ class PosteaMigrationTest {
 
     @Test
     void unstampedDataIsListVersionOne() {
-        assertEquals(1, PosteaMigration.storedOrBaseline(ChunkTransformContext.UNSTAMPED));
+        assertEquals(1, PosteaMigration.storedOrBaseline(IVersionedTransformer.UNSTAMPED));
         assertEquals(4, PosteaMigration.storedOrBaseline(4));
     }
 

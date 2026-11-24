@@ -4,17 +4,17 @@ import static net.minecraftforge.common.util.Constants.NBT.TAG_STRING;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.gtnewhorizons.postea.api.ChunkTransformContext;
-import com.gtnewhorizons.postea.api.CustomDataTransformContext;
 import com.gtnewhorizons.postea.api.IDExtenderCompat;
 import com.gtnewhorizons.postea.api.IVersionedTransformer;
-import com.gtnewhorizons.postea.api.PlayerDataTransformContext;
 import com.gtnewhorizons.postea.api.VersionedReplacementManager;
+import com.gtnewhorizons.postea.api.VersionedStackTransformer;
 import com.ruling_0.materiallib.api.MaterialIdTransitions;
 import com.ruling_0.materiallib.api.OverrideSubstitutions;
 import com.ruling_0.materiallib.api.ShapeBlock;
@@ -36,7 +36,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 /// fails.
 ///
 /// Shape ids are cached until the next FML id remap, which can renumber them (see [#invalidateIds]).
-public final class PosteaMigration implements IVersionedTransformer {
+public final class PosteaMigration extends VersionedStackTransformer {
 
     static final String KEY = MaterialLib.MODID + ":idList";
 
@@ -71,73 +71,51 @@ public final class PosteaMigration implements IVersionedTransformer {
 
     @Override
     public void transformChunk(ChunkTransformContext ctx) {
-        Int2IntMap remap = remap(
-            WorldMaterialIds.transitions(),
-            storedOrBaseline(ctx.storedVersion()),
-            ctx.currentVersion());
+        Int2IntMap remap = remap(WorldMaterialIds.transitions(), storedOrBaseline(ctx.storedVersion()),
+            currentVersion());
         OverrideSubstitutions substitutions = ShapeRegistry.instance().overrideSubstitutions();
-        if (remap.isEmpty() && substitutions.isEmpty()) return;
-        IntSet blocks = blockIds();
-        ctx.forEachBlock((x, y, z, id, meta) -> {
-            if (!blocks.contains(id)) return;
-            int result = remap.getOrDefault(meta, meta);
-            if (result == MaterialIdTransitions.DELETE) {
-                ctx.setBlock(x, y, z, 0, 0);
-                return;
-            }
-            long substituted = substitutions.substituteBlock(id, result);
-            if (substituted >= 0) {
-                ctx.setBlock(
-                    x,
-                    y,
-                    z,
-                    OverrideSubstitutions.blockId(substituted),
-                    OverrideSubstitutions.metadata(substituted));
-            }
-            else if (result != meta) {
-                ctx.setBlock(x, y, z, id, result);
-            }
-        });
-        IntSet items = itemIds();
-        Set<String> names = itemNames();
-        ctx.forEachItemStackTag(stack -> migrateStack(stack, remap, substitutions, items, names));
+        if (!remap.isEmpty() || !substitutions.isEmpty()) {
+            IntSet blocks = blockIds();
+            ctx.forEachBlock((x, y, z, id, meta) -> {
+                if (!blocks.contains(id)) return;
+                int result = remap.getOrDefault(meta, meta);
+                if (result == MaterialIdTransitions.DELETE) {
+                    ctx.setBlock(x, y, z, 0, 0);
+                    return;
+                }
+                long substituted = substitutions.substituteBlock(id, result);
+                if (substituted >= 0) {
+                    ctx.setBlock(
+                        x,
+                        y,
+                        z,
+                        OverrideSubstitutions.blockId(substituted),
+                        OverrideSubstitutions.metadata(substituted));
+                }
+                else if (result != meta) {
+                    ctx.setBlock(x, y, z, id, result);
+                }
+            });
+        }
+        super.transformChunk(ctx);
     }
 
     @Override
-    public void transformPlayer(PlayerDataTransformContext ctx) {
-        Int2IntMap remap = remap(
-            WorldMaterialIds.transitions(),
-            storedOrBaseline(ctx.storedVersion()),
-            ctx.currentVersion());
+    protected Consumer<NBTTagCompound> stackTransform(int storedVersion) {
+        Int2IntMap remap = remap(WorldMaterialIds.transitions(), storedOrBaseline(storedVersion), currentVersion());
         OverrideSubstitutions substitutions = ShapeRegistry.instance().overrideSubstitutions();
-        if (remap.isEmpty() && substitutions.isEmpty()) return;
+        if (remap.isEmpty() && substitutions.isEmpty()) return null;
         IntSet items = itemIds();
         Set<String> names = itemNames();
-        ctx.forEachItemStackTag(stack -> migrateStack(stack, remap, substitutions, items, names));
+        return stack -> {
+            remapStack(stack, remap, items, names);
+            substitutions.substituteStack(stack);
+        };
     }
 
-    @Override
-    public void transformCustomData(CustomDataTransformContext ctx) {
-        Int2IntMap remap = remap(
-            WorldMaterialIds.transitions(),
-            storedOrBaseline(ctx.storedVersion()),
-            ctx.currentVersion());
-        OverrideSubstitutions substitutions = ShapeRegistry.instance().overrideSubstitutions();
-        if (remap.isEmpty() && substitutions.isEmpty()) return;
-        IntSet items = itemIds();
-        Set<String> names = itemNames();
-        ctx.forEachItemStackTag(stack -> migrateStack(stack, remap, substitutions, items, names));
-    }
-
-    private static void migrateStack(NBTTagCompound stack, Int2IntMap remap, OverrideSubstitutions substitutions,
-                                     IntSet shapeItems, Set<String> shapeItemNames) {
-        remapStack(stack, remap, shapeItems, shapeItemNames);
-        substitutions.substituteStack(stack);
-    }
-
-    /// Returns the list version to migrate from: `stored`, or 1 when it is [ChunkTransformContext#UNSTAMPED].
+    /// Returns the list version to migrate from: `stored`, or 1 when it is [IVersionedTransformer#UNSTAMPED].
     static int storedOrBaseline(int stored) {
-        return stored == ChunkTransformContext.UNSTAMPED ? 1 : stored;
+        return stored == IVersionedTransformer.UNSTAMPED ? 1 : stored;
     }
 
     /// Returns the remap from `from` to `to`, empty when they are equal. Throws [IllegalStateException] when

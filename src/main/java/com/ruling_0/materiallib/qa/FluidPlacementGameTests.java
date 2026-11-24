@@ -1,11 +1,13 @@
 package com.ruling_0.materiallib.qa;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.passive.EntityPig;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntityDispenser;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -38,6 +40,7 @@ public class FluidPlacementGameTests {
     private static final String BATCH = "materiallib.fluids";
     private static final int CELL_SIZE = 5;
     private static final float LOOK_DOWN = 90, LOOK_EAST = -90;
+    private static final int FACING_NORTH = 2;
 
     /// Skips the test unless `registerExamples` is on, and clears the test cell of fluids and dropped items when the
     /// test ends.
@@ -154,6 +157,44 @@ public class FluidPlacementGameTests {
         helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 1), source.result, "filled bucket");
         helper.assertBlockPresent(Blocks.air, 3, 1, 1);
         verified(helper, "bucket pickup");
+    }
+
+    /// The block of TestGold's testGas: water kind, with no vanilla bucket form.
+    private static Block waterKindGas(GameTestHelper helper) {
+        Block gold = fluidBlock(stack(helper, "TestGold", "testCanister", 1));
+        helper.assertSame(Material.water, gold.getMaterial(), "TestGold's testGas block material");
+        return gold;
+    }
+
+    @GameTest(batch = BATCH)
+    public static void aVanillaBucketLeavesAWaterKindSourceAlone(GameTestHelper helper) {
+        setUp(helper);
+        FakePlayer player = player(helper, "qa-fluids-vanilla");
+        Block gold = waterKindGas(helper);
+        helper.setBlock(1, 1, 1, gold, 0);
+        ItemStack left = use(helper, player, new ItemStack(Items.bucket), 1.5, 3.5, 1.5, 0, LOOK_DOWN);
+        helper.assertBlockPresent(gold, 0, 1, 1, 1);
+        helper.assertItemEqual(new ItemStack(Items.bucket), left, "hand after using a bucket on the source");
+        verified(helper, "vanilla bucket at a water-kind source");
+    }
+
+    @GameTest(batch = BATCH)
+    public static void aDispenserLeavesAWaterKindSourceAlone(GameTestHelper helper) {
+        setUp(helper);
+        Block gold = waterKindGas(helper);
+        World world = helper.getWorld();
+        helper.setBlock(1, 1, 1, gold, 0);
+        helper.setBlock(1, 1, 2, Blocks.dispenser);
+        TestPos dispenser = helper.absolute(1, 1, 2);
+        world.setBlockMetadataWithNotify(dispenser.x(), dispenser.y(), dispenser.z(), FACING_NORTH, 2);
+        TileEntityDispenser inventory = (TileEntityDispenser) world.getTileEntity(dispenser.x(), dispenser.y(),
+            dispenser.z());
+        inventory.setInventorySlotContents(0, new ItemStack(Items.bucket));
+        Blocks.dispenser.updateTick(world, dispenser.x(), dispenser.y(), dispenser.z(), world.rand);
+        helper.assertBlockPresent(gold, 0, 1, 1, 1);
+        helper.assertItemEqual(new ItemStack(Items.bucket), inventory.getStackInSlot(0),
+            "dispenser after dispensing at the source");
+        verified(helper, "dispensed bucket at a water-kind source");
     }
 
     @GameTest(batch = BATCH)

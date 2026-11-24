@@ -7,6 +7,8 @@ import net.minecraft.util.DamageSource;
 import com.ruling_0.materiallib.MaterialLib;
 import com.ruling_0.materiallib.api.EmptyContainerHandle;
 import com.ruling_0.materiallib.api.Family;
+import com.ruling_0.materiallib.api.FluidBlockKind;
+import com.ruling_0.materiallib.api.FluidBlockKindChooser;
 import com.ruling_0.materiallib.api.MaterialLibAPI;
 import com.ruling_0.materiallib.api.MaterialRegistrationEvent;
 import com.ruling_0.materiallib.api.Shape;
@@ -30,8 +32,8 @@ import cpw.mods.fml.common.registry.GameRegistry;
 /// icon. testOre and testFluid override their icon paths, and testBucket its untinted base icon. A consumer on
 /// testGear adds a shapeless recipe per material crafting its ingot into its gear, and lang overrides on
 /// TestGold show per-pair display names. TestGold is emissive and testOre sets emissive layers, so TestGold's
-/// testOre icon glows. TestIron and TestGold place their test fluid from testBucket, TestIron places testGas from
-/// testCanister, and TestGold's fluid hurts what touches it.
+/// testOre icon glows. TestIron and TestGold place their test fluid from testBucket and their testGas from
+/// testCanister. TestGold's test fluid hurts what touches it, and its testGas places as a [FluidBlockKind#WATER] block.
 ///
 /// TestPalette draws column 1 of the `test` palette, a four-entry column short enough to merge the art's darker
 /// shades. Its ingot2 shape shows the composite: the numbered layers baked through the same column and the
@@ -97,6 +99,8 @@ public final class ExampleContent {
         Shape testGas = MaterialLibAPI.newFluidShape(MaterialLib.MODID, "testGas")
             .displayNameKey("format.materiallib.testGas")
             .configureFluid((material, fluid) -> fluid.setGaseous(true).setDensity(-1000))
+            .blockKind((material, fluid) -> "TestGold".equals(material.getName()) ? FluidBlockKind.WATER :
+                FluidBlockKindChooser.DEFAULT.choose(material, fluid))
             .iconPath("minecraft:water_still").build();
 
         EmptyContainerHandle testCanisterEmpty = MaterialLibAPI
@@ -121,8 +125,8 @@ public final class ExampleContent {
             .addToFamily(testFamily)
             .setTint(0xFFFFD700).setLayerTints(0xFF00D0D3, 0xFF6F00D1)
             .setProperty(StandardProperties.EMISSIVE, true)
-            .generateShapes(testGear, ingot, block, testFluid, testBucket, testOre, ingot2)
-            .setPlaceable(testFluid, true)
+            .generateShapes(testGear, ingot, block, testFluid, testBucket, testOre, ingot2, testGas, testCanister)
+            .setPlaceable(testFluid, true).setPlaceable(testGas, true)
             .addTooltip("Shiny gold", "so shiny")
             .build();
 

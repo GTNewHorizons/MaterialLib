@@ -29,7 +29,7 @@ public class CommonProxy {
 
         MaterialLib.LOG.info("MaterialLib version " + Tags.VERSION);
 
-        MinecraftForge.EVENT_BUS.register(new FluidPickupHandler());
+        FluidPickupHandler.register();
         if (Config.registerExamples) {
             MinecraftForge.EVENT_BUS.register(new ExampleContent());
         }

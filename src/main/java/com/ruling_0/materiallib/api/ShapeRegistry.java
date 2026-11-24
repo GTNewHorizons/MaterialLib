@@ -471,10 +471,8 @@ public final class ShapeRegistry {
         }
     }
 
-    /// Picks each name's owner, folds the merged-away declarations' properties into it, applies the queued
-    /// [ShapeEdit]s, registers the owner's backing object and the item behind each empty container, binds each
-    /// shape to the materials that generate it, registers fluids, the blocks of placeable fluids and the fluid
-    /// container mappings, and registers the oredict entries.
+    /// Picks each name's owner and applies the queued [ShapeEdit]s, then registers the resolved shapes and everything
+    /// they back with the game.
     ///
     /// Properties merge before the edits drain, as in [MaterialRegistry#resolve], so an edit overrides what any
     /// declaration set. Invoked by MaterialLib's preInit handler after [MaterialRegistry#resolve]; other mods must
@@ -559,9 +557,8 @@ public final class ShapeRegistry {
         }
     }
 
-    /// Creates the item behind each registered empty container name, registers it with FML under MaterialLib's
-    /// domain (`materiallib:<name>`) with the elected owner supplying its icon and lang key, gives it the fluid
-    /// container dispenser behavior, and binds every handle registered for that name to it.
+    /// Creates and registers the item behind each empty container name under MaterialLib's domain
+    /// (`materiallib:<name>`), and binds every handle registered for that name to it.
     private void registerEmptyContainers() {
         Map<String, EmptyContainerHandle> owners = emptyContainers.chooseOwners();
         for (Map.Entry<String, EmptyContainerHandle> entry : owners.entrySet()) {

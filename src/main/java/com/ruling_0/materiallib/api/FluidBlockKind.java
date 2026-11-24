@@ -1,6 +1,9 @@
 package com.ruling_0.materiallib.api;
 
-/// What a placed fluid does to entities.
+/// How a placed fluid behaves, through the vanilla block material each kind picks.
+///
+/// Vanilla keys world behavior on that material as well as entity behavior. A [#WATER] kind block hydrates farmland and
+/// reacts with lava as water does, and vanilla treats a [#GAS] kind block as neither water nor lava.
 public enum FluidBlockKind {
 
     /// Entities swim, are pushed by the current and drown, and burning entities are put out.

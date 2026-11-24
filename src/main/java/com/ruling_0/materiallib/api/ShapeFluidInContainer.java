@@ -34,7 +34,10 @@ import cpw.mods.fml.relauncher.SideOnly;
 /// [FluidInContainerShapeBuilder#emptyIcon] sets. For a path naming no existing texture file, see
 /// [#registerIcons].
 ///
-/// A container setting [StandardProperties#PLACES_FLUID] places its fluid in the world.
+/// A container setting [StandardProperties#PLACES_FLUID] and holding one bucket places the fluid of a material marked
+/// placeable (see [MaterialBuilder#setPlaceable]). Its empty container picks a source block back up when it is a
+/// vanilla bucket or an empty container item from [MaterialLibAPI#registerEmptyContainer]. Dispensers place and pick up
+/// as a player does.
 public class ShapeFluidInContainer extends ShapeItem {
 
     private final Shape fluidShape;
@@ -90,7 +93,7 @@ public class ShapeFluidInContainer extends ShapeItem {
     /// The fluid shape this container was built with.
     Shape getFluidShape() { return fluidShape; }
 
-    /// Whether this container sets [StandardProperties#PLACES_FLUID] and holds one bucket.
+    /// Whether this container places and picks up its fluid.
     boolean placesFluid() {
         return getProperty(StandardProperties.PLACES_FLUID) && volume == FluidContainerRegistry.BUCKET_VOLUME;
     }

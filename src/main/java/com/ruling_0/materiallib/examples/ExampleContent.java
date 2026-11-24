@@ -24,17 +24,15 @@ import cpw.mods.fml.common.registry.GameRegistry;
 /// [MaterialRegistrationEvent] handler. A dependent mod registers the same way, except it subscribes its handler
 /// during construction as described in the event doc. This handler subscribes in preInit, once the config is read.
 ///
-/// The materials are TestIron and TestGold, which both tint a base texture, and TestPalette, which bakes the
-/// same art through a palette column instead.
-/// The testFrame block shape reaches all three materials through the Test family; the testGear
-/// item shape, ingot and block shapes, test fluid shape, testBucket fluid-in-container shape, and testOre
-/// block shape are generated on the materials directly. testOre demonstrates block shape variants: a stone
-/// and a cobblestone variant, each with its own untinted vanilla base texture under the tinted material
-/// icon. testOre and testFluid override their icon paths, and testBucket its untinted base icon. A consumer on
-/// testGear adds a shapeless recipe per material crafting its ingot into its gear, and lang overrides on
-/// TestGold show per-pair display names. TestGold is emissive and testOre sets emissive layers, so TestGold's
-/// testOre icon glows. TestIron and TestGold place their test fluid from testBucket and their testGas from
-/// testCanister. TestGold's test fluid hurts what touches it, and its testGas places as a [FluidBlockKind#WATER] block.
+/// The materials are TestIron and TestGold, which both tint a base texture, and TestPalette, which bakes the same art
+/// through a palette column instead. The testFrame block shape reaches all three materials through the Test family; the
+/// testGear item shape, ingot and block shapes, test fluid shape, testBucket fluid-in-container shape, and testOre
+/// block shape are generated on the materials directly. testOre demonstrates block shape variants: a stone and a
+/// cobblestone variant, each with its own untinted vanilla base texture under the tinted material icon. testOre and
+/// testFluid override their icon paths, and testBucket its untinted base icon. A consumer on testGear adds a shapeless
+/// recipe per material crafting its ingot into its gear, and lang overrides on TestGold show per-pair display names.
+/// TestGold is emissive and testOre sets emissive layers, so TestGold's testOre icon glows. TestIron and TestGold have
+/// placeable fluids, and TestGold's show the fluid callbacks and a chosen block kind.
 ///
 /// TestPalette draws column 1 of the `test` palette, a four-entry column short enough to merge the art's darker
 /// shades. Its ingot2 shape shows the composite: the numbered layers baked through the same column and the

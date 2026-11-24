@@ -105,8 +105,7 @@ public class FluidPlacementGameTests {
     }
 
     /// Posts a vanilla bucket's [FillBucketEvent] at the test-local position, carrying `earlier` as the result an
-    /// earlier
-    /// handler set.
+    /// earlier handler set.
     private static FillBucketEvent fillVanillaBucket(GameTestHelper helper, FakePlayer player, int x, int y, int z,
                                                      Event.Result earlier) {
         int ax = helper.getOriginX() + x, ay = helper.getOriginY() + y, az = helper.getOriginZ() + z;

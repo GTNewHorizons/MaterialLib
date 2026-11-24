@@ -70,7 +70,7 @@ public final class MaterialBuilder {
     }
 
     /// Marks whether the material's fluid in `fluid` can be placed in the world from a container shape that places
-    /// fluid (see [StandardProperties#PLACES_FLUID]). The default is false.
+    /// fluid (see [ShapeFluidInContainer]). The default is false.
     ///
     /// Has no effect unless the material generates `fluid`. Rejects a non-fluid shape.
     ///

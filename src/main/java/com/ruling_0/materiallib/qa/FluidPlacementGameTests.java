@@ -33,7 +33,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 /// [com.ruling_0.materiallib.examples.ExampleContent].
 ///
 /// Placement and pickup go through the container items' right-click and a posted [FillBucketEvent], with a fake player
-/// aiming at a block. Every test is skipped unless `registerExamples` is on, and logs a "verified" line when it passes.
+/// aiming at a block. Every test is skipped unless `registerExamples` is on.
 @GameTestHolder(MaterialLib.MODID)
 public class FluidPlacementGameTests {
 
@@ -47,11 +47,6 @@ public class FluidPlacementGameTests {
     private static void setUp(GameTestHelper helper) {
         helper.assumeTrue(Config.registerExamples, "registerExamples is off");
         helper.afterTest(() -> removeLeftovers(helper));
-    }
-
-    private static void verified(GameTestHelper helper, String check) {
-        MaterialLib.LOG.info("[{}] verified {}", BATCH, check);
-        helper.succeed();
     }
 
     /// A survival fake player with an empty inventory.
@@ -127,23 +122,17 @@ public class FluidPlacementGameTests {
         helper.assertBlockPresent(iron, 0, 1, 1, 1);
         helper.assertItemEqual(new ItemStack(Items.bucket), left, "hand after placing");
 
+        helper.setBlock(1, 0, 3, Blocks.stone);
+        left = placeOnFloor(helper, player, stack(helper, "TestIron", "testBucket", 3), 1, 3);
+        helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 2), left, "hand after placing from a stack");
+        helper.assertTrue(player.inventory.hasItem(Items.bucket), "the emptied bucket is not in the inventory");
+
         player.capabilities.isCreativeMode = true;
         helper.setBlock(3, 0, 1, Blocks.stone);
         left = placeOnFloor(helper, player, stack(helper, "TestIron", "testBucket", 1), 3, 1);
         helper.assertBlockPresent(iron, 0, 3, 1, 1);
         helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 1), left, "creative hand after placing");
-        verified(helper, "bucket placement");
-    }
-
-    @GameTest(batch = BATCH)
-    public static void placingFromAStackKeepsTheRestAndGivesTheEmpty(GameTestHelper helper) {
-        setUp(helper);
-        FakePlayer player = player(helper, "qa-fluids-stack");
-        helper.setBlock(1, 0, 1, Blocks.stone);
-        ItemStack left = placeOnFloor(helper, player, stack(helper, "TestIron", "testBucket", 3), 1, 1);
-        helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 2), left, "hand after placing from a stack");
-        helper.assertTrue(player.inventory.hasItem(Items.bucket), "the emptied bucket is not in the inventory");
-        verified(helper, "stack placement");
+        helper.succeed();
     }
 
     @GameTest(batch = BATCH)
@@ -160,7 +149,7 @@ public class FluidPlacementGameTests {
         helper.assertEquals(Event.Result.ALLOW, source.getResult(), "bucket event at a source block");
         helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 1), source.result, "filled bucket");
         helper.assertBlockPresent(Blocks.air, 3, 1, 1);
-        verified(helper, "bucket pickup");
+        helper.succeed();
     }
 
     /// The block of TestGold's testGas: water kind, with no vanilla bucket form.
@@ -181,7 +170,7 @@ public class FluidPlacementGameTests {
         helper.assertItemEqual(new ItemStack(Items.bucket), left, "hand after using a bucket on the source");
         FillBucketEvent denied = fillVanillaBucket(helper, player, 1, 1, 1, Event.Result.DENY);
         helper.assertTrue(denied.isCanceled(), "a bucket event denied by an earlier handler was not canceled");
-        verified(helper, "vanilla bucket at a water-kind source");
+        helper.succeed();
     }
 
     /// Fires `held` once from a dispenser at test-local (1, 1, 2), facing (1, 1, 1). Returns the dispenser.
@@ -206,7 +195,7 @@ public class FluidPlacementGameTests {
         helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 1), dispenser.getStackInSlot(0),
             "dispenser slot after placing from a stack");
         helper.assertItemEqual(new ItemStack(Items.bucket), dispenser.getStackInSlot(1), "emptied bucket");
-        verified(helper, "dispenser placement");
+        helper.succeed();
     }
 
     @GameTest(batch = BATCH)
@@ -223,7 +212,7 @@ public class FluidPlacementGameTests {
         helper.assertBlockPresent(Blocks.air, 1, 1, 1);
         helper.assertItemEqual(stack(helper, "TestIron", "testCanister", 1), dispenser.getStackInSlot(0),
             "dispensed empty canister");
-        verified(helper, "dispenser pickup");
+        helper.succeed();
     }
 
     /// A dispenser never takes a water-kind block as water: a bucket with no form of the fluid is dropped instead.
@@ -240,7 +229,7 @@ public class FluidPlacementGameTests {
             dropped |= item.getEntityItem().getItem() == Items.bucket;
         }
         helper.assertTrue(dropped, "the dispenser dropped no empty bucket");
-        verified(helper, "dispensed bucket at a water-kind source");
+        helper.succeed();
     }
 
     @GameTest(batch = BATCH)
@@ -251,7 +240,7 @@ public class FluidPlacementGameTests {
         ItemStack left = placeOnFloor(helper, player, stack(helper, "TestPalette", "testBucket", 1), 1, 1);
         helper.assertItemEqual(stack(helper, "TestPalette", "testBucket", 1), left, "hand after a refused placement");
         helper.assertBlockPresent(Blocks.air, 1, 1, 1);
-        verified(helper, "non-placeable pair");
+        helper.succeed();
     }
 
     /// Cobweb stands in for a solid block: it has no collision box, so the player's aim passes through it to the floor
@@ -271,7 +260,7 @@ public class FluidPlacementGameTests {
         ItemStack left = placeOnFloor(helper, player, stack(helper, "TestIron", "testBucket", 1), 3, 1);
         helper.assertBlockPresent(Blocks.web, 3, 1, 1);
         helper.assertItemEqual(stack(helper, "TestIron", "testBucket", 1), left, "hand after a refused placement");
-        verified(helper, "replaceable target");
+        helper.succeed();
     }
 
     /// The canister places sideways against a stone block, so the gas has air both above and below it.
@@ -294,7 +283,7 @@ public class FluidPlacementGameTests {
         ItemStack filled = use(helper, player, left, 0.5, 2.5, 1.5, LOOK_EAST, 0);
         helper.assertItemEqual(stack(helper, "TestIron", "testCanister", 1), filled, "canister after pickup");
         helper.assertBlockPresent(Blocks.air, 2, 2, 1);
-        verified(helper, "gas flow and canister pickup");
+        helper.succeed();
     }
 
     /// TestGold's testGas gilds an iron block beneath it from a tick callback.
@@ -321,7 +310,7 @@ public class FluidPlacementGameTests {
         float health = pig.getHealth();
         pig.moveEntity(0, -0.01, 0);
         helper.assertTrue(pig.getHealth() < health, "a pig moving in TestGold's fluid took no damage");
-        verified(helper, "contact callback");
+        helper.succeed();
     }
 
     @GameTest(batch = BATCH)
@@ -332,6 +321,6 @@ public class FluidPlacementGameTests {
             "block registered as materiallib:fluid.test.testiron");
         helper.assertFalse(Block.blockRegistry.containsKey("materiallib:fluid.test.testpalette"),
             "non-placeable TestPalette has a registered fluid block");
-        verified(helper, "block registry names");
+        helper.succeed();
     }
 }

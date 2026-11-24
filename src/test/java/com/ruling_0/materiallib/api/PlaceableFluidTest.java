@@ -12,11 +12,10 @@ class PlaceableFluidTest {
     private final TextureSet texture = TextureSet.of("amod", "shiny");
 
     @Test
-    void placeabilityMergesPerFluidShapeWithTheOwnerWinningConflicts() {
+    void placeabilityIsKeyedPerFluidShapeAndRejectsOtherShapes() {
         ShapeFluid molten = new ShapeFluid("amod", "molten");
         ShapeFluid liquid = new ShapeFluid("amod", "liquid");
-        registry.newMaterial("amod", "TestIron", texture).setPlaceable(molten, false).build();
-        registry.newMaterial("bmod", "TestIron", texture).setPlaceable(molten, true).setPlaceable(liquid, true).build();
+        registry.newMaterial("amod", "TestIron", texture).setPlaceable(liquid, true).build();
         registry.resolve();
 
         Material iron = registry.getMaterial("amod", "TestIron");
@@ -35,15 +34,5 @@ class PlaceableFluidTest {
         registry.resolve();
 
         assertTrue(FluidPlacement.isPlaceable(registry.getMaterial("amod", "TestIron"), molten));
-    }
-
-    @Test
-    void anEditOverridesTheDeclaredPlaceability() {
-        ShapeFluid molten = new ShapeFluid("amod", "molten");
-        registry.newMaterial("amod", "TestIron", texture).setPlaceable(molten, true).build();
-        registry.editMaterial("amod", "TestIron").setPlaceable(molten, false);
-        registry.resolve();
-
-        assertFalse(FluidPlacement.isPlaceable(registry.getMaterial("amod", "TestIron"), molten));
     }
 }

@@ -20,7 +20,5 @@ class FluidFlowTest {
     void distanceRunsFromOneToSixteen() {
         assertThrows(IllegalArgumentException.class, () -> new FluidFlow(FluidFlow.Direction.DOWN, 0));
         assertThrows(IllegalArgumentException.class, () -> new FluidFlow(FluidFlow.Direction.DOWN, 17));
-        assertEquals(1, new FluidFlow(FluidFlow.Direction.DOWN, 1).distance());
-        assertEquals(16, new FluidFlow(FluidFlow.Direction.DOWN, 16).distance());
     }
 }

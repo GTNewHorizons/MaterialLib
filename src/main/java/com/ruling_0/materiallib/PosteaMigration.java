@@ -40,6 +40,8 @@ public final class PosteaMigration extends VersionedStackTransformer {
 
     static final String KEY = MaterialLib.MODID + ":idList";
 
+    private static final String WITHOUT_MIGRATION_PROPERTY = "materiallib.qa.withoutPosteaMigration";
+
     private static volatile IntSet blockIds;
     private static volatile IntSet itemIds;
     private static volatile Set<String> itemNames;
@@ -47,9 +49,15 @@ public final class PosteaMigration extends VersionedStackTransformer {
     private PosteaMigration() {}
 
     /// Registers the transformer with Postea. Call in postInit, once shapes resolve. The system property
-    /// `materiallib.qa.withoutPosteaMigration` skips registration, to test saves made without the transformer.
+    /// `materiallib.qa.withoutPosteaMigration` skips registration, to test saves made without the transformer, and
+    /// logs a warning.
     public static void register() {
-        if (Boolean.getBoolean("materiallib.qa.withoutPosteaMigration")) return;
+        if (Boolean.getBoolean(WITHOUT_MIGRATION_PROPERTY)) {
+            MaterialLib.LOG.warn(
+                "{} is set: the Postea migration is not registered, so saved data will not be migrated or stamped. For QA runs only.",
+                WITHOUT_MIGRATION_PROPERTY);
+            return;
+        }
         VersionedReplacementManager.register(new PosteaMigration());
     }
 

@@ -88,17 +88,15 @@ untinted overlay texture.
 tints the base layer of their Shapes. Layers are tinted by a
 `LAYER_TINTS` property. Layers without a matching tint are
 untinted.
-- **Palettes:** A Material whose palette png exists, named after
-the Material, is colored by that palette rather than tinted.
-Each row of a palette pairs an index pixel (first column) with
-a color (second column). Every pixel of the Shape texture whose
-gray level, its brightest channel, matches a row's index pixel
-is replaced with that row's color; a gray level that no row
-lists takes the last row's color. Layers share the same palette. A
-Shape whose textures share a size and an animation is baked into
-a single image; any other Shape is drawn layer by layer. A
-Material without a palette png keeps its tint, so a resource
-pack can switch any Material to a palette by adding one.
+- **Palettes:** Palette PNGs can be provided for Materials,
+which will then be used instead of tinting for items and blocks.
+The palette must have two columns of pixels. The first column
+is a key, and the second is an associated value
+pixel. The palette is used to recolor Shape textures by
+replacing all key pixels (by HSV value) with their value pixel,
+maintaining the alpha of the original texture. If a key pixel
+in the Shape texture is missing in the palette, the last entry
+in the palette is used.
 
 In either system, individual Shapes of a specific Material can
 be given custom textures through textures at
@@ -115,20 +113,12 @@ textures.
 > where n is the nth layer, starting at 1. Fluids read from
 > `blocks`.
 > - Palettes are placed in
-> `assets/<modid>/textures/palettes/<MaterialName>.png`, under
-> the Material's own modid, matching its name's case.
-> - Any Shape texture (base, `_LAYER<n>`, `_OVERLAY` or
-> override) may animate through a standard `.mcmeta` beside its
-> png, each on its own timeline. A palette-colored Material keeps
-> a separate copy of every animated texture baked for it.
-
-> [!TIP]
->
-> The Palette system allows for more expression than the tint
-> system; however, it requires more work to implement. A palette
-> should list every gray level its Material's textures use.
-> Drawing textures from a fixed set of grays, shared across
-> Shapes, lets one palette cover them all.
+> `assets/<modid>/textures/palettes/<MaterialName>.png` -- the
+> modid and the name's case must match the Material's.
+> - Shape textures may be animated with standard `.mcmeta`
+> files. The base, layer, and overlay textures of a Shape,
+> whether from a texture set or an override, **_do not_** need
+> to match each other's frames or speed.
 
 ## Examples
 `ExampleContent` contains examples on using various API

@@ -72,12 +72,13 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
     Art bake(IResourceManager manager, PaletteArt art) {
         try {
             PaletteArt.Texture base = art.get(manager, PaletteArt.location(isItem, basePath));
+            boolean countUnmatched = MaterialLib.LOG.isDebugEnabled();
             int[] pixels = PaletteBaker.bake(base.indexed(), palette);
-            int unmatched = PaletteBaker.unmatched(base.indexed(), palette);
+            int unmatched = countUnmatched ? PaletteBaker.unmatched(base.indexed(), palette) : 0;
             for (String layerPath : layerPaths) {
                 PaletteArt.Texture layer = art.get(manager, PaletteArt.location(isItem, layerPath));
                 PaletteBaker.compositeOver(pixels, PaletteBaker.bake(layer.indexed(), palette));
-                unmatched += PaletteBaker.unmatched(layer.indexed(), palette);
+                if (countUnmatched) unmatched += PaletteBaker.unmatched(layer.indexed(), palette);
             }
             if (unmatched > 0) {
                 MaterialLib.LOG.debug("{} gray levels of {}'s art match no index row of its palette", unmatched,

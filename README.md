@@ -96,17 +96,8 @@ pixel. The palette is used to recolor Shape textures by
 replacing all key pixels (by HSV value) with their value pixel,
 maintaining the alpha of the original texture. If a key pixel
 in the Shape texture is missing in the palette, the last entry
-in the palette is used. Rows are read top to bottom, and the
-first of two keys with the same HSV value wins. A row with a
-fully transparent key matches nothing, but can still be the
-last entry. Trailing rows with a fully transparent value are
-ignored, but earlier ones are still entries. Such an entry
-paints its value pixel's RGB at the texture's alpha. Columns
-past the second are ignored. A palette that cannot be read, or
-that has no entries, leaves the Material tinted.
-Fluids and per-material icon paths are always tinted. A
-resource pack can recolor a Material by adding or replacing its
-palette.
+in the palette is used. A fully transparent key will match
+nothing, but can still be the last entry used as the fallback.
 
 In either system, individual Shapes of a specific Material can
 be given custom textures through textures at
@@ -124,9 +115,7 @@ textures.
 > `blocks`.
 > - Palettes are placed in
 > `assets/<modid>/textures/palettes/<MaterialName>.png`,
-> matching the name's case. The PNG under the canonical
-> Material's modid is used first, then one under the modid of
-> any other mod declaring the Material.
+> matching the name's case.
 > - Shape textures may be animated with standard `.mcmeta`
 > files. The base, layer, and overlay textures of a Shape,
 > whether from a texture set or an override, **_do not_** need

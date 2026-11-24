@@ -19,18 +19,24 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 ///
 /// No other use of a vanilla bucket picks up a [ShapeFluidBlock], so vanilla never takes a water or lava kind block as
 /// plain water or lava. The bucket handler runs last: another mod's handler that fills the bucket first wins, and one
-/// that denies it leaves the block alone.
+/// that denies it leaves the block alone. The bucket's dispenser behavior is wrapped at load complete, over whatever
+/// behavior other mods registered by then.
 public final class FluidPickupHandler {
 
     private FluidPickupHandler() {}
 
-    /// Registers the bucket handler and wraps the dispenser behavior of [Items#bucket].
+    /// Registers the bucket handler. Invoked by MaterialLib's preInit handler; other mods must not call this.
     public static void register() {
         MinecraftForge.EVENT_BUS.register(new FluidPickupHandler());
-        IBehaviorDispenseItem vanilla = (IBehaviorDispenseItem) BlockDispenser.dispenseBehaviorRegistry
+    }
+
+    /// Wraps the dispenser behavior of [Items#bucket]. Invoked by MaterialLib's load-complete handler; other mods must
+    /// not call this.
+    public static void wrapBucketDispenser() {
+        IBehaviorDispenseItem wrapped = (IBehaviorDispenseItem) BlockDispenser.dispenseBehaviorRegistry
             .getObject(Items.bucket);
         IBehaviorDispenseItem guarded = (source, stack) -> facesFluidBlock(source) ?
-            FluidContainerDispenseBehavior.INSTANCE.dispense(source, stack) : vanilla.dispense(source, stack);
+            FluidContainerDispenseBehavior.INSTANCE.dispense(source, stack) : wrapped.dispense(source, stack);
         BlockDispenser.dispenseBehaviorRegistry.putObject(Items.bucket, guarded);
     }
 

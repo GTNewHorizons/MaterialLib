@@ -15,6 +15,7 @@ import com.ruling_0.materiallib.examples.ExampleContent;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
@@ -59,6 +60,10 @@ public class CommonProxy {
         if (lateHandlerCheck != null) {
             lateHandlerCheck.report();
         }
+    }
+
+    public void loadComplete(FMLLoadCompleteEvent event) {
+        FluidPickupHandler.wrapBucketDispenser();
     }
 
     // Before the worlds load, so the world's id list is reconciled against the registry before any chunk or player

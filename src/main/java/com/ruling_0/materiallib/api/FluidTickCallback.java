@@ -10,6 +10,6 @@ import net.minecraft.world.World;
 public interface FluidTickCallback {
 
     /// Handles one tick of the fluid block of `material` at (`x`, `y`, `z`). Returns true when it acted, which skips
-    /// later callbacks and the fluid's own handling of the tick.
+    /// later callbacks. The fluid flows after the callbacks whenever its block is still in place.
     boolean onTick(Material material, World world, int x, int y, int z, Random random);
 }

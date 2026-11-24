@@ -22,9 +22,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 /// The block takes its Minecraft material from the shape's chosen [FluidBlockKind], and draws the fluid's icons and
 /// tint. A [ShapeFluid] subclass supplies its own subclass of this block from [ShapeFluid#createBlock].
 ///
-/// The shape's contact, tick and neighbor callbacks run on the matching event; see [FluidTickCallback] and
-/// [FluidNeighborCallback] for when a callback skips the fluid's own handling. A subclass overriding one of these
-/// events calls `super` to keep the callbacks.
+/// The shape's contact, tick and neighbor callbacks run on the matching event; see [FluidNeighborCallback] for when a
+/// callback skips the fluid's own handling. A subclass overriding one of these events calls `super` to keep the
+/// callbacks.
 public class ShapeFluidBlock extends BlockFluidClassic {
 
     private static final MaterialLiquid GAS = new MaterialLiquid(MapColor.airColor);
@@ -54,8 +54,8 @@ public class ShapeFluidBlock extends BlockFluidClassic {
 
     @Override
     public void updateTick(World world, int x, int y, int z, Random random) {
-        if (shape.runTickCallbacks(material, world, x, y, z, random)) return;
-        super.updateTick(world, x, y, z, random);
+        shape.runTickCallbacks(material, world, x, y, z, random);
+        if (world.getBlock(x, y, z) == this) super.updateTick(world, x, y, z, random);
     }
 
     @Override

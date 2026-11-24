@@ -1,5 +1,6 @@
 package com.ruling_0.materiallib.examples;
 
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
@@ -147,6 +148,12 @@ public final class ExampleContent {
             if (!"TestGold".equals(material.getName())) return false;
             entity.attackEntityFrom(DamageSource.inFire, 1.0F);
             return true;
+        });
+
+        MaterialLibAPI.editShape(MaterialLib.MODID, "testGas").onFluidTick((material, world, x, y, z, random) -> {
+            boolean gilds = "TestGold".equals(material.getName()) && world.getBlock(x, y - 1, z) == Blocks.iron_block;
+            if (gilds) world.setBlock(x, y - 1, z, Blocks.gold_block);
+            return gilds;
         });
     }
 }

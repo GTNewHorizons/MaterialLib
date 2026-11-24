@@ -79,8 +79,8 @@ public final class ShapeEdit {
         return this;
     }
 
-    /// Attaches a callback that runs when the placed block of one of the shape's fluids ticks. See
-    /// [FluidTickCallback] for the callback contract. Ordering and non-fluid shapes are as in [#onFluidContact].
+    /// Attaches a callback that runs when the placed block of one of the shape's fluids ticks, before the fluid flows.
+    /// See [FluidTickCallback] for the callback contract. Ordering and non-fluid shapes are as in [#onFluidContact].
     public ShapeEdit onFluidTick(FluidTickCallback callback) {
         Objects.requireNonNull(callback, "callback must not be null");
         registry.enqueueShapeOp(modid, name, "attach fluid tick callback to shape", shape -> {

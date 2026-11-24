@@ -298,6 +298,20 @@ public class FluidPlacementGameTests {
         verified(helper, "gas flow and canister pickup");
     }
 
+    /// TestGold's testGas gilds an iron block beneath it from a tick callback.
+    @GameTest(batch = BATCH)
+    public static void aTickCallbackThatActsLeavesTheFluidFlowing(GameTestHelper helper) {
+        setUp(helper);
+        Block gas = waterKindGas(helper);
+        helper.setBlock(1, 1, 1, Blocks.iron_block);
+        helper.setBlock(1, 2, 1, gas, 0);
+        World world = helper.getWorld();
+        gas.updateTick(world, helper.getOriginX() + 1, helper.getOriginY() + 2, helper.getOriginZ() + 1, world.rand);
+        helper.assertBlockPresent(Blocks.gold_block, 1, 1, 1);
+        helper.assertBlockPresent(gas, 1, 3, 1);
+        helper.succeed();
+    }
+
     /// Moves the pig through vanilla entity movement, the path that reaches the contact callback in play.
     @GameTest(batch = BATCH)
     public static void touchingTestGoldHurts(GameTestHelper helper) {

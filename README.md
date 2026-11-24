@@ -100,8 +100,10 @@ in the palette is used. Rows are read top to bottom, and the
 first of two keys with the same HSV value wins. A row with a
 fully transparent key matches nothing, but can still be the
 last entry. Trailing rows with a fully transparent value are
-ignored, as are columns past the second. A palette that cannot
-be read, or that has no entries, leaves the Material tinted.
+ignored, but earlier ones are still entries. Such an entry
+paints its value pixel's RGB at the texture's alpha. Columns
+past the second are ignored. A palette that cannot be read, or
+that has no entries, leaves the Material tinted.
 Fluids and per-material icon paths are always tinted. A
 resource pack can recolor a Material by adding or replacing its
 palette.

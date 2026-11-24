@@ -9,8 +9,8 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceLinkedOpenHashSet;
 
 /// One mod's contribution to a shared [Material], as its [MaterialBuilder] declared it. Declarations stay apart after
-/// the material unifies, because which [ShapeOverride] survives depends on which declaration generates the shape, and
-/// icons fall back to the other declarations' texture sets.
+/// the material unifies. Which [ShapeOverride] survives depends on which declaration generates the shape. Icons fall
+/// back to the other declarations' texture sets.
 record MaterialDeclaration(String modid, Map<Property<?>, Object> properties, Set<Shape> shapes,
                            Set<Shape> removedShapes, List<String[]> familyKeys, List<String> tooltipLines,
                            Map<Shape, ShapeOverride> overrides) {

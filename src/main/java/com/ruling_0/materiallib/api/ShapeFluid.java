@@ -13,6 +13,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.ruling_0.materiallib.MaterialLib;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -34,21 +35,28 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 /// material's [StandardProperties#FLUID_TINT], or [StandardProperties#TINT] when unset, so tank and GUI renderers
 /// show the right name and tint without a custom fluid block. A fluid whose icon came from the resource-pack
 /// override location is untinted; see [ShapeItem#hasOverrideIcon].
+///
+/// A placeable pair (see [MaterialBuilder#setPlaceable]) also gets a [ShapeFluidBlock] named `fluid.<fluidName>` in
+/// MaterialLib's domain.
 public class ShapeFluid implements ServedShape {
 
     private static final List<String> NO_OREDICTS = List.of();
     private static final FluidConfigurer NO_OP_CONFIGURER = (material, fluid) -> {};
+    private static final FluidBlockConfigurer NO_OP_BLOCK_CONFIGURER = (material, block) -> {};
 
     private final String modid;
     private final String name;
     private final FluidNamer namer;
     private final FluidConfigurer configurer;
     private final IconPather iconPather;
+    private final FluidBlockKindChooser kindChooser;
+    private final FluidBlockConfigurer blockConfigurer;
 
     private final ServedMaterials served = new ServedMaterials();
     private final ShapeProperties props = new ShapeProperties();
 
     private final Int2ObjectMap<Fluid> fluidsByIndex = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectMap<ShapeFluidBlock> blocksByIndex = new Int2ObjectOpenHashMap<>();
     private final Set<Material> warnedMissingIcon = new ReferenceOpenHashSet<>();
     private final Set<Material> overrideIcons = new ReferenceOpenHashSet<>();
 
@@ -67,11 +75,21 @@ public class ShapeFluid implements ServedShape {
     /// As [#ShapeFluid(String, String, FluidNamer, FluidConfigurer)], additionally setting this shape's
     /// [IconPather], or null for none; see [#resolveIconPath].
     ShapeFluid(String modid, String name, FluidNamer namer, FluidConfigurer configurer, IconPather iconPather) {
+        this(modid, name, namer, configurer, iconPather, null, null);
+    }
+
+    /// As [#ShapeFluid(String, String, FluidNamer, FluidConfigurer, IconPather)], additionally setting the
+    /// [FluidBlockKindChooser], where null means [FluidBlockKindChooser#DEFAULT], and the [FluidBlockConfigurer],
+    /// where null performs no extra configuration.
+    ShapeFluid(String modid, String name, FluidNamer namer, FluidConfigurer configurer, IconPather iconPather,
+               FluidBlockKindChooser kindChooser, FluidBlockConfigurer blockConfigurer) {
         this.modid = Names.validate("fluid shape modid", modid);
         this.name = Names.validate("fluid shape name", name);
         this.namer = namer != null ? namer : FluidNamer.DEFAULT;
         this.configurer = configurer != null ? configurer : NO_OP_CONFIGURER;
         this.iconPather = iconPather;
+        this.kindChooser = kindChooser != null ? kindChooser : FluidBlockKindChooser.DEFAULT;
+        this.blockConfigurer = blockConfigurer != null ? blockConfigurer : NO_OP_BLOCK_CONFIGURER;
     }
 
     @Override
@@ -147,6 +165,18 @@ public class ShapeFluid implements ServedShape {
                 Names.key(modid, name),
                 Names.key(candidate.modid, candidate.name));
         }
+        if (candidate.kindChooser != FluidBlockKindChooser.DEFAULT && candidate.kindChooser != kindChooser) {
+            MaterialLib.LOG.warn(
+                "Fluid shapes {} and {} share a name but set different block kind choosers; only the owner's runs",
+                Names.key(modid, name),
+                Names.key(candidate.modid, candidate.name));
+        }
+        if (candidate.blockConfigurer != NO_OP_BLOCK_CONFIGURER && candidate.blockConfigurer != blockConfigurer) {
+            MaterialLib.LOG.warn(
+                "Fluid shapes {} and {} share a name but set different block configurers; only the owner's runs",
+                Names.key(modid, name),
+                Names.key(candidate.modid, candidate.name));
+        }
     }
 
     /// Registers one Forge fluid per served material, validating and reserving each material's fluid name against
@@ -172,6 +202,50 @@ public class ShapeFluid implements ServedShape {
             fluidName,
             material.getKey());
         return FluidRegistry.getFluid(fluidName);
+    }
+
+    /// Registers a [ShapeFluidBlock] for each served material that [FluidPlacement#isPlaceable], skipping a fluid
+    /// this shape did not create.
+    void registerBlocks() {
+        blocksByIndex.clear();
+        FluidFlow flow = getProperty(StandardProperties.FLUID_FLOW);
+        for (Material material : served.get()) {
+            if (!FluidPlacement.isPlaceable(material, this)) continue;
+            Fluid fluid = fluidsByIndex.get(material.getIndex());
+            if (!(fluid instanceof MaterialFluid)) {
+                MaterialLib.LOG.warn(
+                    "Fluid {} of {} is registered elsewhere; it will not be placeable",
+                    fluid.getName(),
+                    material.getKey());
+                continue;
+            }
+            ShapeFluidBlock block = createBlock(material, fluid, blockKind(material, fluid));
+            block.setDensity(flow.blockDensity(fluid.getDensity()));
+            block.setQuantaPerBlock(flow.distance());
+            blockConfigurer.configure(material, block);
+            GameRegistry.registerBlock(block, null, blockName(material));
+            blocksByIndex.put(material.getIndex(), block);
+        }
+    }
+
+    /// The registry name of `material`'s fluid block.
+    String blockName(Material material) {
+        return "fluid." + fluidName(material);
+    }
+
+    /// The kind of block placed for `material`'s `fluid`, as chosen by this shape's [FluidBlockKindChooser].
+    FluidBlockKind blockKind(Material material, Fluid fluid) {
+        return kindChooser.choose(material, fluid);
+    }
+
+    /// Creates the block for `material`'s `fluid`. Subclasses override this to supply their own [ShapeFluidBlock].
+    protected ShapeFluidBlock createBlock(Material material, Fluid fluid, FluidBlockKind kind) {
+        return new ShapeFluidBlock(this, material, fluid, kind);
+    }
+
+    /// The block registered for `material` in this shape, or null when the pair is not placeable.
+    ShapeFluidBlock block(Material material) {
+        return blocksByIndex.get(material.getIndex());
     }
 
     /// The fluid registered for `material` in this shape, or null when the material does not generate it.

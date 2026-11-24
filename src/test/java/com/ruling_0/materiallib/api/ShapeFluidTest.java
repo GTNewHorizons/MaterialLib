@@ -11,12 +11,35 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import net.minecraftforge.fluids.Fluid;
+
 import org.junit.jupiter.api.Test;
 
 class ShapeFluidTest {
 
     private final MaterialRegistry registry = new MaterialRegistry();
     private final TextureSet texture = TextureSet.of("examplemod", "shiny");
+
+    @Test
+    void aFluidBlockIsNamedAfterItsFluidName() {
+        Material iron = registry.newMaterial("examplemod", "TestIron", texture).build();
+        ShapeFluid molten = new ShapeFluid("examplemod", "molten",
+            (shape, material) -> "legacy." + material.getName().toLowerCase(Locale.ENGLISH), null);
+
+        assertEquals("fluid.legacy.testiron", molten.blockName(iron));
+    }
+
+    @Test
+    void aBlockKindChooserReplacesTheDefaultRule() {
+        Material iron = registry.newMaterial("examplemod", "TestIron", texture).build();
+        Fluid hot = new Fluid("molten.testiron").setTemperature(1800);
+        ShapeFluid molten = new ShapeFluid("examplemod", "molten");
+        ShapeFluid tame = new ShapeFluid("examplemod", "molten", null, null, null,
+            (material, fluid) -> FluidBlockKind.WATER, null);
+
+        assertEquals(FluidBlockKind.LAVA, molten.blockKind(iron, hot));
+        assertEquals(FluidBlockKind.WATER, tame.blockKind(iron, hot));
+    }
 
     @Test
     void fluidNameIsShapeAndMaterialLowercasedByDefault() {

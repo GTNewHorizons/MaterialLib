@@ -473,7 +473,8 @@ public final class ShapeRegistry {
 
     /// Picks each name's owner, folds the merged-away declarations' properties into it, applies the queued
     /// [ShapeEdit]s, registers the owner's backing object and the item behind each empty container, binds each
-    /// shape to the materials that generate it, registers fluids and the fluid container mappings, and registers
+    /// shape to the materials that generate it, registers fluids, the blocks of placeable fluids and the fluid
+    /// container mappings, and registers
     /// the oredict entries.
     ///
     /// Properties merge before the edits drain, as in [MaterialRegistry#resolve], so an edit overrides what any
@@ -493,6 +494,7 @@ public final class ShapeRegistry {
         registerEmptyContainers();
         bindServedMaterials();
         registerFluids();
+        registerFluidBlocks();
         registerFluidContainers();
         registerOreDictionary();
         resolved = true;
@@ -665,6 +667,17 @@ public final class ShapeRegistry {
                 fluidMaterials.putIfAbsent(fluid.fluid(material), new FluidMaterialInfo(fluid, material));
             }
         }
+    }
+
+    private void registerFluidBlocks() {
+        int count = 0;
+        for (ShapeFluid fluid : fluidShapes) {
+            fluid.registerBlocks();
+            for (Material material : fluid.getServedMaterials()) {
+                if (fluid.block(material) != null) count++;
+            }
+        }
+        MaterialLib.LOG.info("Registered {} placeable fluid blocks", count);
     }
 
     /// Logs where a fluid shape that lost the election for `canonical`'s name would have named or configured its

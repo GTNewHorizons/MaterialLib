@@ -10,6 +10,8 @@ public final class FluidShapeBuilder extends ShapeBuilder<FluidShapeBuilder> {
     private FluidNamer namer;
     private FluidConfigurer configurer;
     private IconPather iconPather;
+    private FluidBlockKindChooser kindChooser;
+    private FluidBlockConfigurer blockConfigurer;
 
     FluidShapeBuilder(String modid, String name) {
         super(modid, name, "Fluid shape");
@@ -41,6 +43,19 @@ public final class FluidShapeBuilder extends ShapeBuilder<FluidShapeBuilder> {
         return iconPath((shape, material) -> path);
     }
 
+    /// Sets the rule choosing the [FluidBlockKind] of each placeable material's block, in place of the default; see
+    /// [FluidBlockKindChooser].
+    public FluidShapeBuilder blockKind(FluidBlockKindChooser chooser) {
+        this.kindChooser = Objects.requireNonNull(chooser, "chooser must not be null");
+        return this;
+    }
+
+    /// Sets the callback configuring each created fluid block; see [FluidBlockConfigurer].
+    public FluidShapeBuilder configureBlock(FluidBlockConfigurer configurer) {
+        this.blockConfigurer = Objects.requireNonNull(configurer, "configurer must not be null");
+        return this;
+    }
+
     /// Sets how the shape's placed fluids flow; see [FluidFlow].
     public FluidShapeBuilder flow(FluidFlow flow) {
         return property(StandardProperties.FLUID_FLOW, flow);
@@ -48,6 +63,6 @@ public final class FluidShapeBuilder extends ShapeBuilder<FluidShapeBuilder> {
 
     @Override
     ServedShape create() {
-        return new ShapeFluid(modid, name, namer, configurer, iconPather);
+        return new ShapeFluid(modid, name, namer, configurer, iconPather, kindChooser, blockConfigurer);
     }
 }

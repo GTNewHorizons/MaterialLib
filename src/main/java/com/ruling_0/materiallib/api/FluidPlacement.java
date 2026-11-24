@@ -51,10 +51,10 @@ final class FluidPlacement {
         return world.setBlock(x, y, z, block, 0, 3);
     }
 
-    /// Picks up the placeable material fluid source at the given position when the player may mine and edit there; see
-    /// [#fill].
-    static ItemStack fillFrom(EntityPlayer player, World world, int x, int y, int z, ItemStack empty) {
-        if (!world.canMineBlock(player, x, y, z) || !player.canPlayerEdit(x, y, z, 0, empty)) return null;
+    /// Picks up the placeable material fluid source at the given position, hit on `side`, when the player may mine and
+    /// edit there; see [#fill].
+    static ItemStack fillFrom(EntityPlayer player, World world, int x, int y, int z, int side, ItemStack empty) {
+        if (!world.canMineBlock(player, x, y, z) || !player.canPlayerEdit(x, y, z, side, empty)) return null;
         return fill(world, x, y, z, empty);
     }
 

@@ -28,7 +28,8 @@ final class EmptyContainerItem extends Item {
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         MovingObjectPosition hit = getMovingObjectPositionFromPlayer(world, player, true);
         if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return stack;
-        ItemStack filled = FluidPlacement.fillFrom(player, world, hit.blockX, hit.blockY, hit.blockZ, stack);
+        ItemStack filled = FluidPlacement.fillFrom(player, world, hit.blockX, hit.blockY, hit.blockZ, hit.sideHit,
+            stack);
         return filled == null ? stack : FluidPlacement.exchange(stack, filled, player);
     }
 

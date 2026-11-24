@@ -52,7 +52,7 @@ public final class FluidPickupHandler {
             return;
         }
         ItemStack filled = FluidPlacement.fillFrom(event.entityPlayer, event.world, target.blockX, target.blockY,
-            target.blockZ, event.current);
+            target.blockZ, target.sideHit, event.current);
         if (filled == null) {
             event.setCanceled(true);
             return;

@@ -246,8 +246,7 @@ final class ShapeIcons {
             shapeNameCandidates,
             exists);
         if (path != null) return path;
-        List<MaterialDeclaration> declarations = material.declarations();
-        for (MaterialDeclaration other : declarations.subList(1, declarations.size())) {
+        for (MaterialDeclaration other : material.otherDeclarations()) {
             path = resolveFromSets(
                 other.property(StandardProperties.TEXTURE_SET),
                 other.property(StandardProperties.FALLBACK_TEXTURE_SETS),

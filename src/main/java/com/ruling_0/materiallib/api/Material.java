@@ -68,7 +68,7 @@ public final class Material {
         this.name = name;
     }
 
-    /// The owning mod's modid. Only available once the registry has elected the owner.
+    /// The owning mod's modid.
     public String getModId() {
         requireOwner();
         return modid;
@@ -85,7 +85,7 @@ public final class Material {
         return StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : name;
     }
 
-    /// The registry key, `modid:name`, with the owner's modid. Only available once the registry has elected the owner.
+    /// The registry key, `modid:name`, with the owner's modid.
     public String getKey() {
         requireOwner();
         return key;
@@ -217,12 +217,12 @@ public final class Material {
         }
         if (edited != null) return edited;
 
-        MaterialDeclaration owner = declarations.get(0);
+        MaterialDeclaration owner = ownerDeclaration();
         ShapeOverride owned = owner.overrideFor(canonicalShape, canonical);
         if (owned != null && owned.isAvailable(modLoaded)) return owned;
         if (owner.generates(canonicalShape, canonical, registry)) return null;
 
-        for (MaterialDeclaration other : declarations.subList(1, declarations.size())) {
+        for (MaterialDeclaration other : otherDeclarations()) {
             ShapeOverride declared = other.overrideFor(canonicalShape, canonical);
             if (declared != null && declared.isAvailable(modLoaded) &&
                 other.generates(canonicalShape, canonical, registry)) {
@@ -278,6 +278,19 @@ public final class Material {
     /// modid.
     List<MaterialDeclaration> declarations() {
         return Collections.unmodifiableList(declarations);
+    }
+
+    /// The owner's declaration. Throws [IllegalStateException] before the registry has unified this material.
+    MaterialDeclaration ownerDeclaration() {
+        requireOwner();
+        return declarations.get(0);
+    }
+
+    /// Every declaration but the owner's, by modid. Throws [IllegalStateException] before the registry has unified this
+    /// material.
+    List<MaterialDeclaration> otherDeclarations() {
+        requireOwner();
+        return Collections.unmodifiableList(declarations.subList(1, declarations.size()));
     }
 
     /// Makes `ownerModid` the owner and folds every declaration into this material, owner first, then by modid. A
@@ -356,7 +369,7 @@ public final class Material {
     private void requireOwner() {
         if (modid == null) {
             throw new IllegalStateException("Material " + name +
-                " has no owner until the material registry resolves. Mods depending on materiallib read its modid and key from their preInit onwards");
+                " has no owner until the material registry resolves");
         }
     }
 

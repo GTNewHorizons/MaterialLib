@@ -148,7 +148,7 @@ public final class MaterialRegistry {
                 MaterialDeclaration::modid, persistedOwners.get(name), "declared");
             assignedOwners.put(name, ownerModid);
             material.unify(ownerModid);
-            for (MaterialDeclaration other : material.declarations().subList(1, material.declarations().size())) {
+            for (MaterialDeclaration other : material.otherDeclarations()) {
                 MaterialLib.LOG.info("Unified material {}:{} onto owner {}", other.modid(), name, ownerModid);
             }
         }

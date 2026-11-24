@@ -148,8 +148,10 @@ case "${1:?usage: run.sh [--server <dir>] <all|world|examples|boot|discover|seed
         python "$HERE/seed.py" vanilla "$WORLD" "$SERVER/$VANILLA_WORLD_NAME" || exit 1
         set_world "$VANILLA_WORLD_NAME"
         boot vanilla "$TESTS" || exit 1
-        grep -q "materiallib:idList is bringing saved data from version unstamped" "$LOGS/boot-vanilla.log" || {
-            echo "boot vanilla transformed no custom data" >&2
+        # Postea logs the custom-data line at DEBUG, which reaches the server's own log file but not the console.
+        grep -q "materiallib:idList: custom data enderstorage:global from version" \
+            "$LOGS/boot-vanilla.log" "$SERVER"/logs/fml-server-latest.log 2>/dev/null || {
+            echo "boot vanilla did not transform enderstorage:global custom data" >&2
             exit 1
         }
 

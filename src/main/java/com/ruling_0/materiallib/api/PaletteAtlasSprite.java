@@ -98,7 +98,7 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
             PaletteArt.Texture overlay = layer(manager, art, overlayPath, width, height);
             if (overlay != null) PaletteBaker.compositeOver(pixels, overlay.argb());
         }
-        return new Art(PaletteBaker.image(pixels, width, height), base.animation());
+        return new Art(PaletteArt.image(pixels, width, height), base.animation());
     }
 
     /// The level array `loadSprite` takes for `composited`: the art in slot 0 and one null slot per mipmap level

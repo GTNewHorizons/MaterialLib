@@ -92,7 +92,7 @@ public final class PaletteSprites {
             .getInputStream()) {
             BufferedImage image = ImageIO.read(stream);
             if (image == null) throw new IOException("no image reader accepted the file");
-            PaletteBaker.Palette read = PaletteBaker.palette(PaletteBaker.argb(image), image.getWidth(),
+            PaletteBaker.Palette read = PaletteBaker.palette(PaletteArt.argb(image), image.getWidth(),
                 image.getHeight());
             if (read != null) return Optional.of(read);
             MaterialLib.LOG.warn("Palette {} needs an index column and a color column with at least one entry",

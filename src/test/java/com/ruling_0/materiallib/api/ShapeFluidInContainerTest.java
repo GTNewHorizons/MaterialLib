@@ -1,7 +1,9 @@
 package com.ruling_0.materiallib.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -20,10 +22,28 @@ class ShapeFluidInContainerTest {
         assertEquals("gregtech:items/cell_base", new TestContainer(fluid, "gregtech:items/cell_base").emptyIconPath());
     }
 
+    @Test
+    void onlyAOneBucketContainerPlacesItsFluid() {
+        Shape fluid = new ShapeFluid("testmod", "molten");
+        TestContainer bucket = new TestContainer(fluid, null, 1000);
+        TestContainer ingotCell = new TestContainer(fluid, null, 144);
+        assertFalse(bucket.placesFluid());
+
+        bucket.setProperty(StandardProperties.PLACES_FLUID, true);
+        ingotCell.setProperty(StandardProperties.PLACES_FLUID, true);
+
+        assertTrue(bucket.placesFluid());
+        assertFalse(ingotCell.placesFluid());
+    }
+
     private static final class TestContainer extends ShapeFluidInContainer {
 
         TestContainer(Shape fluidShape, String emptyIconOverride) {
-            super("testmod", "cell", fluidShape, (EmptyContainer) null, 1000, emptyIconOverride, "cell");
+            this(fluidShape, emptyIconOverride, 1000);
+        }
+
+        TestContainer(Shape fluidShape, String emptyIconOverride, int volume) {
+            super("testmod", "cell", fluidShape, (EmptyContainer) null, volume, emptyIconOverride, "cell");
         }
     }
 }

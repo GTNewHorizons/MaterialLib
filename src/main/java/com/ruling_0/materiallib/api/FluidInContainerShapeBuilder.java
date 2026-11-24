@@ -64,6 +64,11 @@ public final class FluidInContainerShapeBuilder extends ShapeBuilder<FluidInCont
         return this;
     }
 
+    /// Makes the container place and pick up its fluid; see [StandardProperties#PLACES_FLUID].
+    public FluidInContainerShapeBuilder placesFluid() {
+        return property(StandardProperties.PLACES_FLUID, true);
+    }
+
     @Override
     void validate() {
         if (fluidShape == null) {

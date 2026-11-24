@@ -87,6 +87,11 @@ public final class StandardProperties {
     /// How a placed fluid flows, read from a fluid shape. Defaults to [FluidFlow#DEFAULT].
     public static final Property<FluidFlow> FLUID_FLOW = Property.of(MaterialLib.MODID, "fluidFlow", FluidFlow.DEFAULT);
 
+    /// Read from a fluid-in-container shape: whether the container places the fluid of a material marked placeable
+    /// (see [MaterialBuilder#setPlaceable]), and whether the shape's empty container picks a source block back up.
+    /// Only a container holding exactly one bucket places.
+    public static final Property<Boolean> PLACES_FLUID = Property.of(MaterialLib.MODID, "placesFluid", false);
+
     /// The palette the material's shape art bakes through in place of the tint path; see [PaletteRef]. Null when
     /// unset. A fluid still reads [#TINT] and [#FLUID_TINT]. A family sets it only through the generic
     /// [FamilyBuilder#setProperty].

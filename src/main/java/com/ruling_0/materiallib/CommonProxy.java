@@ -4,6 +4,7 @@ import java.io.File;
 
 import net.minecraftforge.common.MinecraftForge;
 
+import com.ruling_0.materiallib.api.FluidPickupHandler;
 import com.ruling_0.materiallib.api.MaterialOwnerStore;
 import com.ruling_0.materiallib.api.MaterialRegistrationEvent;
 import com.ruling_0.materiallib.api.MaterialRegistry;
@@ -28,6 +29,7 @@ public class CommonProxy {
 
         MaterialLib.LOG.info("MaterialLib version " + Tags.VERSION);
 
+        MinecraftForge.EVENT_BUS.register(new FluidPickupHandler());
         if (Config.registerExamples) {
             MinecraftForge.EVENT_BUS.register(new ExampleContent());
         }

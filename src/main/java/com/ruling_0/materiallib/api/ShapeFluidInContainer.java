@@ -3,9 +3,13 @@ package com.ruling_0.materiallib.api;
 import java.util.Objects;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IIcon;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.world.World;
 
+import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -29,6 +33,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 /// `<modid>:materials/<name>_empty` in the shape's own domain, or the path
 /// [FluidInContainerShapeBuilder#emptyIcon] sets. For a path naming no existing texture file, see
 /// [#registerIcons].
+///
+/// A container setting [StandardProperties#PLACES_FLUID] places its fluid in the world.
 public class ShapeFluidInContainer extends ShapeItem {
 
     private final Shape fluidShape;
@@ -84,9 +90,18 @@ public class ShapeFluidInContainer extends ShapeItem {
     /// The fluid shape this container was built with.
     Shape getFluidShape() { return fluidShape; }
 
+    /// Whether this container sets [StandardProperties#PLACES_FLUID] and holds one bucket.
+    boolean placesFluid() {
+        return getProperty(StandardProperties.PLACES_FLUID) && volume == FluidContainerRegistry.BUCKET_VOLUME;
+    }
+
     /// Registers a [FluidContainerRegistry] mapping for each served material, filling this item at the material's
     /// index from `fluid`. Called at resolve, after fluids and any registered empty container items exist.
     void registerContainers(ShapeFluid fluid) {
+        if (getProperty(StandardProperties.PLACES_FLUID) && !placesFluid()) {
+            MaterialLib.LOG.warn("Fluid container {} holds {} mB, not one bucket; it will not place its fluid", this,
+                volume);
+        }
         ItemStack empty = emptyContainer != null ? emptyContainer.resolve() : null;
         for (Material material : getServedMaterials()) {
             FluidStack fluidStack = fluid.fluidStack(material, volume);
@@ -101,6 +116,21 @@ public class ShapeFluidInContainer extends ShapeItem {
                     material.getKey());
             }
         }
+    }
+
+    /// Places the container's fluid against the block the player looks at, as a filled vanilla bucket does.
+    @Override
+    public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
+        if (!placesFluid()) return stack;
+        MovingObjectPosition hit = getMovingObjectPositionFromPlayer(world, player, false);
+        if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return stack;
+        if (!world.canMineBlock(player, hit.blockX, hit.blockY, hit.blockZ)) return stack;
+        ForgeDirection side = ForgeDirection.getOrientation(hit.sideHit);
+        int x = hit.blockX + side.offsetX;
+        int y = hit.blockY + side.offsetY;
+        int z = hit.blockZ + side.offsetZ;
+        if (!FluidPlacement.placeFrom(player, world, x, y, z, hit.sideHit, stack)) return stack;
+        return FluidPlacement.exchange(stack, FluidContainerRegistry.drainFluidContainer(stack), player);
     }
 
     /// Registers this container's fill icons, then its base icon at [#emptyIconPath], or the

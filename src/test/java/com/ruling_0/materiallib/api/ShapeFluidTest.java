@@ -6,9 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import net.minecraftforge.fluids.Fluid;
@@ -107,5 +109,18 @@ class ShapeFluidTest {
         ShapeFluid candidate = new ShapeFluid("othermod", "molten");
 
         assertNull(canonical.firstNameDivergence(candidate));
+    }
+
+    @Test
+    void fluidCallbacksRunInAttachOrderUntilOneActs() {
+        Material iron = registry.newMaterial("examplemod", "TestIron", texture).build();
+        ShapeFluid molten = new ShapeFluid("examplemod", "molten");
+        List<String> ran = new ArrayList<>();
+        molten.addTickCallback((material, world, x, y, z, random) -> ran.add("first") && false);
+        molten.addTickCallback((material, world, x, y, z, random) -> ran.add("second"));
+        molten.addTickCallback((material, world, x, y, z, random) -> ran.add("third"));
+
+        assertTrue(molten.runTickCallbacks(iron, null, 0, 64, 0, new Random()));
+        assertEquals(List.of("first", "second"), ran);
     }
 }

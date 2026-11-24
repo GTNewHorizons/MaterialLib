@@ -67,6 +67,46 @@ public final class ShapeEdit {
         return this;
     }
 
+    /// Attaches a callback that runs while an entity touches the placed block of one of the shape's fluids. See
+    /// [FluidContactCallback] for the callback contract. Callbacks run in the order attached. Skipped with a warning
+    /// for a non-fluid shape.
+    public ShapeEdit onFluidContact(FluidContactCallback callback) {
+        Objects.requireNonNull(callback, "callback must not be null");
+        registry.enqueueShapeOp(modid, name, "attach fluid contact callback to shape", shape -> {
+            ShapeFluid fluid = asFluid(shape);
+            if (fluid != null) fluid.addContactCallback(callback);
+        });
+        return this;
+    }
+
+    /// Attaches a callback that runs when the placed block of one of the shape's fluids ticks. See
+    /// [FluidTickCallback] for the callback contract. Ordering and non-fluid shapes are as in [#onFluidContact].
+    public ShapeEdit onFluidTick(FluidTickCallback callback) {
+        Objects.requireNonNull(callback, "callback must not be null");
+        registry.enqueueShapeOp(modid, name, "attach fluid tick callback to shape", shape -> {
+            ShapeFluid fluid = asFluid(shape);
+            if (fluid != null) fluid.addTickCallback(callback);
+        });
+        return this;
+    }
+
+    /// Attaches a callback that runs when a block next to the placed block of one of the shape's fluids changes. See
+    /// [FluidNeighborCallback] for the callback contract. Ordering and non-fluid shapes are as in [#onFluidContact].
+    public ShapeEdit onFluidNeighborChange(FluidNeighborCallback callback) {
+        Objects.requireNonNull(callback, "callback must not be null");
+        registry.enqueueShapeOp(modid, name, "attach fluid neighbor callback to shape", shape -> {
+            ShapeFluid fluid = asFluid(shape);
+            if (fluid != null) fluid.addNeighborCallback(callback);
+        });
+        return this;
+    }
+
+    private ShapeFluid asFluid(ServedShape shape) {
+        if (shape instanceof ShapeFluid fluid) return fluid;
+        MaterialLib.LOG.warn("Skipping fluid callback from {}: shape {} is not a fluid shape", modid, name);
+        return null;
+    }
+
     private ShapeItem asItem(ServedShape shape) {
         if (shape instanceof ShapeItem item) return item;
         MaterialLib.LOG.warn("Skipping item callback from {}: shape {} is not an item shape", modid, name);

@@ -1,12 +1,17 @@
 package com.ruling_0.materiallib.api;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.IIcon;
+import net.minecraft.world.World;
 
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -52,6 +57,10 @@ public class ShapeFluid implements ServedShape {
     private final IconPather iconPather;
     private final FluidBlockKindChooser kindChooser;
     private final FluidBlockConfigurer blockConfigurer;
+
+    private final List<FluidContactCallback> contactCallbacks = new ArrayList<>();
+    private final List<FluidTickCallback> tickCallbacks = new ArrayList<>();
+    private final List<FluidNeighborCallback> neighborCallbacks = new ArrayList<>();
 
     private final ServedMaterials served = new ServedMaterials();
     private final ShapeProperties props = new ShapeProperties();
@@ -227,6 +236,40 @@ public class ShapeFluid implements ServedShape {
             GameRegistry.registerBlock(block, null, blockName(material));
             blocksByIndex.put(material.getIndex(), block);
         }
+    }
+
+    void addContactCallback(FluidContactCallback callback) {
+        contactCallbacks.add(callback);
+    }
+
+    void addTickCallback(FluidTickCallback callback) {
+        tickCallbacks.add(callback);
+    }
+
+    void addNeighborCallback(FluidNeighborCallback callback) {
+        neighborCallbacks.add(callback);
+    }
+
+    /// Runs the attached [FluidContactCallback]s in attachment order until one acts, and returns whether one did.
+    boolean runContactCallbacks(Material material, World world, int x, int y, int z, Entity entity) {
+        return dispatch(contactCallbacks, callback -> callback.onContact(material, world, x, y, z, entity));
+    }
+
+    /// Runs the attached [FluidTickCallback]s in attachment order until one acts, and returns whether one did.
+    boolean runTickCallbacks(Material material, World world, int x, int y, int z, Random random) {
+        return dispatch(tickCallbacks, callback -> callback.onTick(material, world, x, y, z, random));
+    }
+
+    /// Runs the attached [FluidNeighborCallback]s in attachment order until one acts, and returns whether one did.
+    boolean runNeighborCallbacks(Material material, World world, int x, int y, int z, Block neighbor) {
+        return dispatch(neighborCallbacks, callback -> callback.onNeighborChange(material, world, x, y, z, neighbor));
+    }
+
+    private static <C> boolean dispatch(List<C> callbacks, Predicate<C> run) {
+        for (C callback : callbacks) {
+            if (run.test(callback)) return true;
+        }
+        return false;
     }
 
     /// The registry name of `material`'s fluid block.

@@ -1,5 +1,7 @@
 package com.ruling_0.materiallib.api;
 
+import java.util.Objects;
+
 /// How a placed fluid spreads: which way it flows and how far from its source. Flow speed follows the fluid's
 /// viscosity.
 ///
@@ -16,13 +18,13 @@ public record FluidFlow(Direction direction, int distance) {
     }
 
     public FluidFlow {
-        if (direction == null) throw new IllegalArgumentException("direction must not be null");
+        Objects.requireNonNull(direction, "direction must not be null");
         if (distance < 1 || distance > 16) throw new IllegalArgumentException("distance must be 1 to 16: " + distance);
     }
 
     /// The block density for a fluid of density `fluidDensity`. [Direction#DOWN] and [Direction#UP] force the sign and
     /// keep the magnitude, with a minimum of 1.
-    public int blockDensity(int fluidDensity) {
+    int blockDensity(int fluidDensity) {
         return switch (direction) {
             case DENSITY -> fluidDensity;
             case DOWN -> Math.max(1, Math.abs(fluidDensity));

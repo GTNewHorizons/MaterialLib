@@ -81,7 +81,7 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
                 if (countUnmatched) unmatched += PaletteBaker.unmatched(layer.indexed(), palette);
             }
             if (unmatched > 0) {
-                MaterialLib.LOG.debug("{} gray levels of {}'s art match no index row of its palette", unmatched,
+                MaterialLib.LOG.debug("{} HSV values in {}'s art match no index row of its palette", unmatched,
                     getIconName());
             }
             if (overlayPath != null) {

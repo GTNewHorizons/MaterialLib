@@ -38,7 +38,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 final class PaletteArt {
 
-    /// A texture's pixels, their gray levels, and its animation metadata, if any.
+    /// A texture's pixels, their HSV values, and its animation metadata, if any.
     record Texture(int width, int height, int[] argb, PaletteBaker.IndexedImage indexed,
                    AnimationMetadataSection animation) {}
 

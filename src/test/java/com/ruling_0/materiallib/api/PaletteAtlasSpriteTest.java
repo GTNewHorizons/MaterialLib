@@ -42,7 +42,7 @@ class PaletteAtlasSpriteTest {
         resources.put(PngResources.itemPng(BASE), 1, 2, new int[] { WHITE, GRAY }, TWO_FRAMES);
     }
 
-    /// The base's two gray levels take their palette colors. A numbered layer marking only the second frame is baked
+    /// The base's two HSV values take their palette colors. A numbered layer marking only the second frame is baked
     /// through the same palette and drawn on that frame alone; an overlay marking only the first frame is drawn as
     /// authored on that frame alone.
     @Test

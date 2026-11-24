@@ -8,9 +8,8 @@ import com.ruling_0.materiallib.api.PaletteBaker.IndexedImage;
 
 import org.junit.jupiter.api.Test;
 
-/// Pins the recoloring [PaletteBaker] performs: art and index pixels matching by gray level, the last entry taking
-/// every unlisted level, which alpha a baked pixel keeps, how palette rows are read, and the blend that flattens
-/// layers.
+/// Pins the recoloring [PaletteBaker] performs: art and index pixels matching by HSV value, the last entry taking every
+/// unlisted value, which alpha a baked pixel keeps, how palette rows are read, and the blend that flattens layers.
 class PaletteBakerTest {
 
     private static final int RED = 0xFFAA0000;
@@ -27,7 +26,7 @@ class PaletteBakerTest {
         return PaletteBaker.palette(argb, 2, rows.length);
     }
 
-    /// Each pixel takes the color of the row indexing its gray level, and a level that no row indexes takes the last
+    /// Each pixel takes the color of the row indexing its HSV value, and a value that no row indexes takes the last
     /// entry.
     @Test
     void pixelsTakeTheColorOfTheirIndexRowAndUnlistedLevelsTheLastEntry() {

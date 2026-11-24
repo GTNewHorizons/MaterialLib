@@ -9,11 +9,11 @@ final class PaletteBaker {
 
     private PaletteBaker() {}
 
-    /// Art reduced to gray levels: `levels` holds each pixel's [#level], or -1 where the pixel is fully transparent,
-    /// and `alphas` holds each pixel's alpha.
+    /// Art reduced to HSV values: `levels` holds each pixel's [#level], or -1 where the pixel is fully transparent, and
+    /// `alphas` holds each pixel's alpha.
     record IndexedImage(int width, int height, int[] levels, int[] alphas) {}
 
-    /// A palette png read into a color for every gray level. Built through [PaletteBaker#palette].
+    /// A palette png read into a color for every HSV value. Built through [PaletteBaker#palette].
     static final class Palette {
 
         private final int[] colors;
@@ -24,18 +24,18 @@ final class PaletteBaker {
             this.indexed = indexed;
         }
 
-        /// The `0xRRGGBB` color for pixels at gray level `level`.
+        /// The `0xRRGGBB` color for pixels with HSV value `level`.
         int color(int level) {
             return colors[level];
         }
 
-        /// Whether some row's index pixel has gray level `level`.
+        /// Whether some row's index pixel has HSV value `level`.
         boolean indexes(int level) {
             return indexed[level];
         }
     }
 
-    /// Reduces every pixel of `argb` to its gray level.
+    /// Reduces every pixel of `argb` to its HSV value.
     static IndexedImage index(int[] argb, int width, int height) {
         int[] levels = new int[argb.length];
         int[] alphas = new int[argb.length];
@@ -83,7 +83,7 @@ final class PaletteBaker {
         return baked;
     }
 
-    /// The number of distinct gray levels in `art` that no row of `palette` indexes.
+    /// The number of distinct HSV values in `art` that no row of `palette` indexes.
     static int unmatched(IndexedImage art, Palette palette) {
         boolean[] seen = new boolean[LEVELS];
         int unmatched = 0;
@@ -95,7 +95,7 @@ final class PaletteBaker {
         return unmatched;
     }
 
-    /// The gray level of `argb`: its brightest channel.
+    /// The HSV value of `argb`: its brightest channel.
     static int level(int argb) {
         return Math.max(Math.max((argb >> 16) & 0xFF, (argb >> 8) & 0xFF), argb & 0xFF);
     }

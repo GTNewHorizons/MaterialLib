@@ -21,8 +21,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 /// Baking runs in Forge's custom-loader hook in place of the atlas reading a file, so the sprite name only has to be
 /// unique on the atlas. Animation follows the base texture's `.mcmeta`, and layers are drawn frame for frame.
 ///
-/// A base texture that cannot be read, or a bake that throws, resolves as the missing texture. A layer that cannot be
-/// read or does not match the base's size is left out.
+/// A base texture that cannot be read, or a bake that throws, resolves as the missing texture.
 @SideOnly(Side.CLIENT)
 final class PaletteAtlasSprite extends TextureAtlasSprite {
 
@@ -34,7 +33,6 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
     private final List<String> layerPaths;
     private final String overlayPath;
     private final PaletteBaker.Palette palette;
-    private boolean warnedLayer;
 
     /// A sprite named `name` baking the art at `basePath`, its numbered layers at `layerPaths` and, when
     /// `overlayPath` is non-null, its overlay, through `palette`. Every path names an item texture when
@@ -69,36 +67,31 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
         }
     }
 
-    /// The flattened strip with the base texture's animation, or null when the base texture cannot be read. Textures
-    /// are read through `art`.
+    /// The flattened strip with the base texture's animation, or null when the art cannot be read. Textures are read
+    /// through `art`.
     Art bake(IResourceManager manager, PaletteArt art) {
-        PaletteArt.Texture base;
         try {
-            base = art.get(manager, PaletteArt.location(isItem, basePath));
+            PaletteArt.Texture base = art.get(manager, PaletteArt.location(isItem, basePath));
+            int[] pixels = PaletteBaker.bake(base.indexed(), palette);
+            int unmatched = PaletteBaker.unmatched(base.indexed(), palette);
+            for (String layerPath : layerPaths) {
+                PaletteArt.Texture layer = art.get(manager, PaletteArt.location(isItem, layerPath));
+                PaletteBaker.compositeOver(pixels, PaletteBaker.bake(layer.indexed(), palette));
+                unmatched += PaletteBaker.unmatched(layer.indexed(), palette);
+            }
+            if (unmatched > 0) {
+                MaterialLib.LOG.debug("{} gray levels of {}'s art match no index row of its palette", unmatched,
+                    getIconName());
+            }
+            if (overlayPath != null) {
+                PaletteBaker.compositeOver(pixels, art.get(manager, PaletteArt.location(isItem, overlayPath)).argb());
+            }
+            return new Art(PaletteArt.image(pixels, base.width(), base.height()), base.animation());
         }
         catch (IOException e) {
-            MaterialLib.LOG.error("Could not read base texture {} of {}", basePath, getIconName(), e);
+            MaterialLib.LOG.error("Could not read the art of {}", getIconName(), e);
             return null;
         }
-        int width = base.width();
-        int height = base.height();
-        int[] pixels = PaletteBaker.bake(base.indexed(), palette);
-        int unmatched = PaletteBaker.unmatched(base.indexed(), palette);
-        for (String layerPath : layerPaths) {
-            PaletteArt.Texture layer = layer(manager, art, layerPath, width, height);
-            if (layer == null) continue;
-            PaletteBaker.compositeOver(pixels, PaletteBaker.bake(layer.indexed(), palette));
-            unmatched += PaletteBaker.unmatched(layer.indexed(), palette);
-        }
-        if (unmatched > 0) {
-            MaterialLib.LOG.debug("{} gray levels of {}'s art match no index row of its palette", unmatched,
-                getIconName());
-        }
-        if (overlayPath != null) {
-            PaletteArt.Texture overlay = layer(manager, art, overlayPath, width, height);
-            if (overlay != null) PaletteBaker.compositeOver(pixels, overlay.argb());
-        }
-        return new Art(PaletteArt.image(pixels, width, height), base.animation());
     }
 
     /// The level array `loadSprite` takes for `composited`: the art in slot 0 and one null slot per mipmap level
@@ -107,29 +100,5 @@ final class PaletteAtlasSprite extends TextureAtlasSprite {
         BufferedImage[] levels = new BufferedImage[1 + mipmapLevels];
         levels[0] = composited;
         return levels;
-    }
-
-    /// The art at `path`, or null when that art is unreadable or is not `width` x `height`.
-    private PaletteArt.Texture layer(IResourceManager manager, PaletteArt art, String path, int width, int height) {
-        PaletteArt.Texture layer;
-        try {
-            layer = art.get(manager, PaletteArt.location(isItem, path));
-        }
-        catch (IOException e) {
-            warnLayer("Could not read layer {} of {}", path, getIconName(), e);
-            return null;
-        }
-        if (layer.width() != width || layer.height() != height) {
-            warnLayer("{} is {}x{} but the base of {} is {}x{}", path, layer.width(), layer.height(), getIconName(),
-                width, height);
-            return null;
-        }
-        return layer;
-    }
-
-    private void warnLayer(String message, Object... args) {
-        if (warnedLayer) return;
-        warnedLayer = true;
-        MaterialLib.LOG.warn(message, args);
     }
 }

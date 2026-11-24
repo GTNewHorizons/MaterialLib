@@ -41,6 +41,11 @@ public final class FluidShapeBuilder extends ShapeBuilder<FluidShapeBuilder> {
         return iconPath((shape, material) -> path);
     }
 
+    /// Sets how the shape's placed fluids flow; see [FluidFlow].
+    public FluidShapeBuilder flow(FluidFlow flow) {
+        return property(StandardProperties.FLUID_FLOW, flow);
+    }
+
     @Override
     ServedShape create() {
         return new ShapeFluid(modid, name, namer, configurer, iconPather);

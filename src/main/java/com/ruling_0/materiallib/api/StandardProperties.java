@@ -84,6 +84,9 @@ public final class StandardProperties {
     /// [#TINT]. The fluid's own rendering (see [ShapeFluid]) never consults this property.
     public static final Property<Integer> CELL_TINT = Property.of(MaterialLib.MODID, "cellTint");
 
+    /// How a placed fluid flows, read from a fluid shape. Defaults to [FluidFlow#DEFAULT].
+    public static final Property<FluidFlow> FLUID_FLOW = Property.of(MaterialLib.MODID, "fluidFlow", FluidFlow.DEFAULT);
+
     /// The palette the material's shape art bakes through in place of the tint path; see [PaletteRef]. Null when
     /// unset. A fluid still reads [#TINT] and [#FLUID_TINT]. A family sets it only through the generic
     /// [FamilyBuilder#setProperty].

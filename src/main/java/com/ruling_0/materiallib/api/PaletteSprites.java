@@ -33,7 +33,10 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public final class PaletteSprites {
 
-    private static final Map<PaletteRef, Optional<PaletteBaker.Palette>> PALETTES = new ConcurrentHashMap<>();
+    /// A material's palette and the png it was read from.
+    private record MaterialPalette(PaletteRef ref, PaletteBaker.Palette colors) {}
+
+    private static final Map<Material, Optional<MaterialPalette>> PALETTES = new ConcurrentHashMap<>();
 
     private static PaletteArt art = new PaletteArt();
 
@@ -49,18 +52,17 @@ public final class PaletteSprites {
     /// ([PaletteArt#layout]). A sprite already on the atlas under its [PaletteRef#bakedIconName] is reused.
     static IIcon[] bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, Material material) {
         if (!(register instanceof TextureMap map)) return null;
-        PaletteRef palette = PaletteRef.of(material);
-        PaletteBaker.Palette colors = palette(palette);
-        if (colors == null) return null;
+        MaterialPalette palette = PALETTES.computeIfAbsent(material, PaletteSprites::read).orElse(null);
+        if (palette == null) return null;
         PaletteArt.Layout layout = art.layout(Minecraft.getMinecraft().getResourceManager(), isItem, stack);
         if (layout.flattened()) {
             return new IIcon[] {
-                sprite(map, palette, colors, isItem, stack.base(), layout.layers(), layout.overlay()) };
+                sprite(map, palette, isItem, stack.base(), layout.layers(), layout.overlay()) };
         }
         List<IIcon> icons = new ArrayList<>();
-        icons.add(sprite(map, palette, colors, isItem, stack.base(), List.of(), null));
+        icons.add(sprite(map, palette, isItem, stack.base(), List.of(), null));
         for (String layer : layout.layers()) {
-            icons.add(sprite(map, palette, colors, isItem, layer, List.of(), null));
+            icons.add(sprite(map, palette, isItem, layer, List.of(), null));
         }
         if (stack.overlay() != null) icons.add(register.registerIcon(stack.overlay()));
         return icons.toArray(new IIcon[0]);
@@ -71,30 +73,26 @@ public final class PaletteSprites {
         return art;
     }
 
-    /// The palette read from `palette`'s png, or null when the png is missing, unreadable or holds no palette.
-    static PaletteBaker.Palette palette(PaletteRef palette) {
-        return PALETTES.computeIfAbsent(palette, PaletteSprites::read).orElse(null);
-    }
-
-    private static IIcon sprite(TextureMap map, PaletteRef palette, PaletteBaker.Palette colors, boolean isItem,
-                                String path, List<String> layers, String overlay) {
-        String name = palette.bakedIconName(path);
+    private static IIcon sprite(TextureMap map, MaterialPalette palette, boolean isItem, String path,
+                                List<String> layers, String overlay) {
+        String name = palette.ref().bakedIconName(path);
         TextureAtlasSprite bound = map.getTextureExtry(name);
         if (bound != null) return bound;
-        PaletteAtlasSprite sprite = new PaletteAtlasSprite(name, isItem, path, layers, overlay, colors);
+        PaletteAtlasSprite sprite = new PaletteAtlasSprite(name, isItem, path, layers, overlay, palette.colors());
         map.setTextureEntry(name, sprite);
         return sprite;
     }
 
-    private static Optional<PaletteBaker.Palette> read(PaletteRef palette) {
-        if (!ResourceUtil.resourceExists(palette.png())) return Optional.empty();
+    private static Optional<MaterialPalette> read(Material material) {
+        PaletteRef palette = PaletteRef.find(material, ResourceUtil::resourceExists);
+        if (palette == null) return Optional.empty();
         try (InputStream stream = Minecraft.getMinecraft().getResourceManager().getResource(palette.png())
             .getInputStream()) {
             BufferedImage image = ImageIO.read(stream);
             if (image == null) throw new IOException("no image reader accepted the file");
             PaletteBaker.Palette read = PaletteBaker.palette(PaletteArt.argb(image), image.getWidth(),
                 image.getHeight());
-            if (read != null) return Optional.of(read);
+            if (read != null) return Optional.of(new MaterialPalette(palette, read));
             MaterialLib.LOG.warn("Palette {} needs an index column and a color column with at least one entry",
                 palette.png());
         }

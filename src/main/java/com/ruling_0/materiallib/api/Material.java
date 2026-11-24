@@ -86,6 +86,8 @@ public final class Material {
         return modid;
     }
 
+    String getModIdIgnoreCanonical() { return modid; }
+
     /// The material's registry name, used in translation keys and oredict entries. Conventionally starts with a
     /// capital letter.
     public String getName() {

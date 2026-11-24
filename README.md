@@ -113,8 +113,10 @@ textures.
 > where n is the nth layer, starting at 1. Fluids read from
 > `blocks`.
 > - Palettes are placed in
-> `assets/<modid>/textures/palettes/<MaterialName>.png` -- the
-> modid and the name's case must match the Material's.
+> `assets/<modid>/textures/palettes/<MaterialName>.png`,
+> matching the name's case. The PNG under the canonical
+> Material's modid is used first, then one under the modid of
+> any other mod declaring the Material.
 > - Shape textures may be animated with standard `.mcmeta`
 > files. The base, layer, and overlay textures of a Shape,
 > whether from a texture set or an override, **_do not_** need

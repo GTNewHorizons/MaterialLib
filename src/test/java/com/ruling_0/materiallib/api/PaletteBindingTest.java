@@ -50,7 +50,8 @@ class PaletteBindingTest {
 
         assertTrue(icons.isPaletteBaked(index));
         assertEquals(1, icons.layerCount(index));
-        assertSame(register.registered.get(PaletteRef.of(material).bakedIconName(base)), icons.get(index));
+        assertSame(register.registered.get(PaletteRef.find(material, location -> true).bakedIconName(base)),
+            icons.get(index));
         assertFalse(icons.isOverlayLayer(index, 0));
         assertEquals(0xFFFFFFFF, icons.layerColor(material, 0));
 
@@ -198,7 +199,7 @@ class PaletteBindingTest {
         public IIcon[] bake(IIconRegister register, boolean isItem, ShapeIcons.StackPaths stack, Material material) {
             calls.add(new BakeCall(isItem, stack, material));
             if (!bakes) return null;
-            PaletteRef palette = PaletteRef.of(material);
+            PaletteRef palette = PaletteRef.find(material, location -> true);
             if (!passes) return new IIcon[] { register.registerIcon(palette.bakedIconName(stack.base())) };
             List<IIcon> icons = new ArrayList<>();
             icons.add(register.registerIcon(palette.bakedIconName(stack.base())));

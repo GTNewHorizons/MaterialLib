@@ -1,11 +1,13 @@
 package com.ruling_0.materiallib.api;
 
+import java.util.function.Predicate;
+
 import net.minecraft.util.ResourceLocation;
 
 import com.ruling_0.materiallib.MaterialLib;
 
-/// A material's palette: the png `assets/<modid>/textures/palettes/<name>.png`, named after the material's modid and
-/// name ([#of]).
+/// A material's palette: the png `assets/<modid>/textures/palettes/<name>.png`, named after the material and found
+/// under the modid of one of its declarations ([#find]).
 ///
 /// A material whose palette png exists has its shape art baked rather than tinted. When the texture atlas stitches, the
 /// base texture and its `_LAYER<n>`s are recolored through the palette, and the `_OVERLAY` is drawn uncolored above
@@ -33,9 +35,16 @@ public record PaletteRef(String modid, String name) {
         Names.validate("palette name", name);
     }
 
-    /// The palette of `material`, named after its modid and name.
-    public static PaletteRef of(Material material) {
-        return new PaletteRef(material.getModId(), material.getName());
+    /// The palette of `material`: the first png accepted by `exists`, looked up under the owner's modid and then under
+    /// each unification alternative's modid in [ShapeIcons#resolvePath]'s order. Null when no png exists.
+    public static PaletteRef find(Material material, Predicate<ResourceLocation> exists) {
+        PaletteRef owner = new PaletteRef(material.getModId(), material.getName());
+        if (exists.test(owner.png())) return owner;
+        for (Material alternative : material.getAlternatives()) {
+            PaletteRef palette = new PaletteRef(alternative.getModIdIgnoreCanonical(), material.getName());
+            if (exists.test(palette.png())) return palette;
+        }
+        return null;
     }
 
     /// The location of the palette png.

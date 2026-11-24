@@ -39,8 +39,11 @@ public class FluidPlacementGameTests {
     private static final int CELL_SIZE = 5;
     private static final float LOOK_DOWN = 90, LOOK_EAST = -90;
 
-    private static void requireExamples(GameTestHelper helper) {
+    /// Skips the test unless `registerExamples` is on, and clears the test cell of fluids and dropped items when the
+    /// test ends.
+    private static void setUp(GameTestHelper helper) {
         helper.assumeTrue(Config.registerExamples, "registerExamples is off");
+        helper.afterTest(() -> removeLeftovers(helper));
     }
 
     private static void verified(GameTestHelper helper, String check) {
@@ -48,13 +51,11 @@ public class FluidPlacementGameTests {
         helper.succeed();
     }
 
-    /// A survival fake player with an empty inventory. The test cell is cleared of fluids and dropped items when the
-    /// test ends.
+    /// A survival fake player with an empty inventory.
     private static FakePlayer player(GameTestHelper helper, String name) {
         FakePlayer player = helper.spawnFakePlayer(name);
         player.inventory.clearInventory(null, -1);
         player.capabilities.isCreativeMode = false;
-        helper.afterTest(() -> removeLeftovers(helper));
         return player;
     }
 
@@ -81,21 +82,15 @@ public class FluidPlacementGameTests {
     }
 
     private static Block fluidBlock(ItemStack filled) {
-        return FluidContainerRegistry.getFluidForFilledItem(filled)
-            .getFluid()
-            .getBlock();
+        return FluidContainerRegistry.getFluidForFilledItem(filled).getFluid().getBlock();
     }
 
     /// Right-clicks `held` with the player's eye at the test-local position (`x`, `y`, `z`), looking along `yaw` and
     /// `pitch`. Returns the stack left in hand.
-    private static ItemStack use(GameTestHelper helper, FakePlayer player, ItemStack held, double x, double y,
-                                 double z, float yaw, float pitch) {
-        player.setLocationAndAngles(
-            helper.getOriginX() + x,
-            helper.getOriginY() + y - player.getEyeHeight(),
-            helper.getOriginZ() + z,
-            yaw,
-            pitch);
+    private static ItemStack use(GameTestHelper helper, FakePlayer player, ItemStack held, double x, double y, double z,
+                                 float yaw, float pitch) {
+        player.setLocationAndAngles(helper.getOriginX() + x, helper.getOriginY() + y - player.getEyeHeight(),
+            helper.getOriginZ() + z, yaw, pitch);
         player.inventory.mainInventory[player.inventory.currentItem] = held;
         return held.getItem().onItemRightClick(held, helper.getWorld(), player);
     }
@@ -117,7 +112,7 @@ public class FluidPlacementGameTests {
 
     @GameTest(batch = BATCH)
     public static void aBucketPlacesASourceAndReturnsTheEmptyBucket(GameTestHelper helper) {
-        requireExamples(helper);
+        setUp(helper);
         FakePlayer player = player(helper, "qa-fluids-place");
         Block iron = fluidBlock(stack(helper, "TestIron", "testBucket", 1));
         helper.setBlock(1, 0, 1, Blocks.stone);
@@ -135,7 +130,7 @@ public class FluidPlacementGameTests {
 
     @GameTest(batch = BATCH)
     public static void placingFromAStackKeepsTheRestAndGivesTheEmpty(GameTestHelper helper) {
-        requireExamples(helper);
+        setUp(helper);
         FakePlayer player = player(helper, "qa-fluids-stack");
         helper.setBlock(1, 0, 1, Blocks.stone);
         ItemStack left = placeOnFloor(helper, player, stack(helper, "TestIron", "testBucket", 3), 1, 1);
@@ -146,7 +141,7 @@ public class FluidPlacementGameTests {
 
     @GameTest(batch = BATCH)
     public static void aVanillaBucketPicksUpOnlyASource(GameTestHelper helper) {
-        requireExamples(helper);
+        setUp(helper);
         FakePlayer player = player(helper, "qa-fluids-pickup");
         Block iron = fluidBlock(stack(helper, "TestIron", "testBucket", 1));
         helper.setBlock(1, 1, 1, iron, 1);
@@ -163,7 +158,7 @@ public class FluidPlacementGameTests {
 
     @GameTest(batch = BATCH)
     public static void aNonPlaceablePairPlacesNothing(GameTestHelper helper) {
-        requireExamples(helper);
+        setUp(helper);
         FakePlayer player = player(helper, "qa-fluids-unplaceable");
         helper.setBlock(1, 0, 1, Blocks.stone);
         ItemStack left = placeOnFloor(helper, player, stack(helper, "TestPalette", "testBucket", 1), 1, 1);
@@ -176,7 +171,7 @@ public class FluidPlacementGameTests {
     /// and targets the cobweb itself.
     @GameTest(batch = BATCH)
     public static void placementReplacesGrassButNotCobweb(GameTestHelper helper) {
-        requireExamples(helper);
+        setUp(helper);
         FakePlayer player = player(helper, "qa-fluids-replace");
         Block iron = fluidBlock(stack(helper, "TestIron", "testBucket", 1));
         helper.setBlock(1, 0, 1, Blocks.grass);
@@ -195,15 +190,13 @@ public class FluidPlacementGameTests {
     /// The canister places sideways against a stone block, so the gas has air both above and below it.
     @GameTest(batch = BATCH)
     public static void testGasRisesAndTheCanisterPicksItBackUp(GameTestHelper helper) {
-        requireExamples(helper);
+        setUp(helper);
         FakePlayer player = player(helper, "qa-fluids-gas");
         Block gas = fluidBlock(stack(helper, "TestIron", "testCanister", 1));
         helper.setBlock(3, 2, 1, Blocks.stone);
         ItemStack left = use(helper, player, stack(helper, "TestIron", "testCanister", 1), 0.5, 2.5, 1.5, LOOK_EAST, 0);
         helper.assertBlockPresent(gas, 0, 2, 2, 1);
-        helper.assertItemEqual(
-            new ItemStack(GameRegistry.findItem(MaterialLib.MODID, "testCanisterEmpty")),
-            left,
+        helper.assertItemEqual(new ItemStack(GameRegistry.findItem(MaterialLib.MODID, "testCanisterEmpty")), left,
             "hand after placing holds the canister's own empty, not a bucket");
 
         World world = helper.getWorld();
@@ -219,18 +212,13 @@ public class FluidPlacementGameTests {
 
     @GameTest(batch = BATCH)
     public static void touchingTestGoldBurns(GameTestHelper helper) {
-        requireExamples(helper);
+        setUp(helper);
         Block gold = fluidBlock(stack(helper, "TestGold", "testBucket", 1));
         helper.setBlock(1, 1, 1, gold, 0);
         World world = helper.getWorld();
         EntityPig pig = helper.spawnEntity(new EntityPig(world), 1.5, 1, 1.5);
         helper.afterTest(pig::setDead);
-        helper.afterTest(() -> removeLeftovers(helper));
-        gold.onEntityCollidedWithBlock(
-            world,
-            helper.getOriginX() + 1,
-            helper.getOriginY() + 1,
-            helper.getOriginZ() + 1,
+        gold.onEntityCollidedWithBlock(world, helper.getOriginX() + 1, helper.getOriginY() + 1, helper.getOriginZ() + 1,
             pig);
         helper.assertTrue(pig.isBurning(), "a pig touching TestGold's fluid is not burning");
         verified(helper, "contact callback");
@@ -238,13 +226,11 @@ public class FluidPlacementGameTests {
 
     @GameTest(batch = BATCH)
     public static void placeableBlocksAreRegisteredUnderTheirFluidNames(GameTestHelper helper) {
-        requireExamples(helper);
-        helper.assertSame(
-            fluidBlock(stack(helper, "TestIron", "testBucket", 1)),
+        setUp(helper);
+        helper.assertSame(fluidBlock(stack(helper, "TestIron", "testBucket", 1)),
             Block.blockRegistry.getObject("materiallib:fluid.test.testiron"),
             "block registered as materiallib:fluid.test.testiron");
-        helper.assertFalse(
-            Block.blockRegistry.containsKey("materiallib:fluid.test.testpalette"),
+        helper.assertFalse(Block.blockRegistry.containsKey("materiallib:fluid.test.testpalette"),
             "non-placeable TestPalette has a registered fluid block");
         verified(helper, "block registry names");
     }

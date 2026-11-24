@@ -69,6 +69,17 @@ public final class MaterialBuilder {
         return setProperty(StandardProperties.LOCALIZATION_KEY, key);
     }
 
+    /// Marks whether the material's fluid in `fluid` can be placed in the world from a container shape that places
+    /// fluid (see [StandardProperties#PLACES_FLUID]). The default is false.
+    ///
+    /// Has no effect unless the material generates `fluid`. Rejects a non-fluid shape.
+    ///
+    /// Turning a pair off removes its block, and worlds holding that block report it missing on load.
+    public MaterialBuilder setPlaceable(Shape fluid, boolean placeable) {
+        FluidPlacement.requireFluidShape(fluid);
+        return setProperty(FluidPlacement.placeableProperty(fluid.getName()), placeable);
+    }
+
     /// Sets a property value. Rejects [StandardProperties#TEXTURE_SET].
     public <T> MaterialBuilder setProperty(Property<T> property, T value) {
         StandardProperties.requireSettable(property, value);

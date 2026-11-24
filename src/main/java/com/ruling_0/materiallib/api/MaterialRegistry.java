@@ -79,6 +79,12 @@ public final class MaterialRegistry {
         return material != null && material.isDeclaredBy(modid) ? material : null;
     }
 
+    /// The material named `name`, whichever mods declared it, or null if none did. Usable during registration, though
+    /// the returned material is only readable after the registry resolves.
+    public Material getMaterial(String name) {
+        return materials.get(name);
+    }
+
     /// The family with the given key, or null if none exists. Usable during registration, though the returned
     /// family is only readable after the registry resolves.
     public Family getFamily(String modid, String name) {

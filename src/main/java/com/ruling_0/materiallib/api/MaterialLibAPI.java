@@ -205,6 +205,11 @@ public final class MaterialLibAPI {
         return MaterialRegistry.instance().getMaterial(modid, name);
     }
 
+    /// The material named `name`, whichever mods declared it, or null if none did. To change it, see [#editMaterial].
+    public static Material getMaterial(String name) {
+        return MaterialRegistry.instance().getMaterial(name);
+    }
+
     /// The family with the given key, or null if none exists.
     public static Family getFamily(String modid, String name) {
         return MaterialRegistry.instance().getFamily(modid, name);

@@ -32,6 +32,7 @@ class MaterialUnificationTest {
         assertEquals(1, registry.getMaterials().size());
         Material merged = registry.getMaterial("amod", "testiron");
         assertSame(merged, registry.getMaterial("bmod", "testiron"));
+        assertSame(merged, registry.getMaterial("testiron"));
         assertEquals("amod", merged.getModId());
         assertEquals("amod:testiron", merged.getKey());
         assertEquals(Map.of("testiron", "amod"), registry.getAssignedOwners());

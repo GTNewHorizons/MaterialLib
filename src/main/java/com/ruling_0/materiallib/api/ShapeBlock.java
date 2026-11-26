@@ -5,6 +5,7 @@ import java.util.BitSet;
 import java.util.List;
 
 import net.minecraft.block.Block;
+import net.minecraft.client.particle.EffectRenderer;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -292,6 +293,17 @@ public class ShapeBlock extends Block implements BackedShape {
             return baseIcon;
         }
         return icons.get(meta);
+    }
+
+    // Bypass normal break particle rendering, otherwise EndlessIDs caps meta at 8 bits
+    @Override
+    @SideOnly(Side.CLIENT)
+    public boolean addDestroyEffects(World world, int x, int y, int z, int meta, EffectRenderer effectRenderer) {
+        if (world.getBlock(x, y, z) != this) return false;
+        final int worldMeta = world.getBlockMetadata(x, y, z);
+        if (worldMeta == meta) return false;
+        effectRenderer.addBlockDestroyEffects(x, y, z, this, worldMeta);
+        return true;
     }
 
     /// The first layer of `material`'s icon stack on this shape, or the transparent placeholder when none resolved.

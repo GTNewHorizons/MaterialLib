@@ -22,7 +22,7 @@ final class ShapeNaming {
         List<String> keys = new ArrayList<>(2);
         Map<String, String> materialKeys = material.getProperty(StandardProperties.LOCALIZATION_FORMAT_KEYS);
         if (materialKeys != null && materialKeys.containsKey(shapeName)) keys.add(materialKeys.get(shapeName));
-        String shapeKey = shape.getProperty(StandardProperties.LOCALIZATION_FORMAT_KEY);
+        String shapeKey = shape.getLocalizationFormatKey();
         if (shapeKey != null) keys.add(shapeKey);
         return keys;
     }

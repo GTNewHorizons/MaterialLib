@@ -52,6 +52,15 @@ public interface Shape {
         throw new UnsupportedOperationException(this + " does not hold properties");
     }
 
+    /// The translation key of the shape's display-name format, from [StandardProperties#LOCALIZATION_FORMAT_KEY].
+    /// Null when unset.
+    default String getLocalizationFormatKey() { return getProperty(StandardProperties.LOCALIZATION_FORMAT_KEY); }
+
+    /// Sets [StandardProperties#LOCALIZATION_FORMAT_KEY], as [#setProperty].
+    default Shape setLocalizationFormatKey(String key) {
+        return setProperty(StandardProperties.LOCALIZATION_FORMAT_KEY, key);
+    }
+
     /// True if this shape sets the property explicitly; the property default does not count.
     default boolean hasProperty(Property<?> property) {
         return false;

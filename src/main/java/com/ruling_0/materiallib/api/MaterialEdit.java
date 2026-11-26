@@ -44,6 +44,11 @@ public final class MaterialEdit {
         return setProperty(StandardProperties.PALETTE, new PaletteRef(modid, name, column));
     }
 
+    /// As [MaterialBuilder#setLocalizationKey].
+    public MaterialEdit setLocalizationKey(String key) {
+        return setProperty(StandardProperties.LOCALIZATION_KEY, key);
+    }
+
     /// Sets a property value. Rejects [StandardProperties#TEXTURE_SET].
     public <T> MaterialEdit setProperty(Property<T> property, T value) {
         StandardProperties.requireSettable(property, value);

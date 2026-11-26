@@ -171,6 +171,11 @@ public final class MaterialLibAPI {
         return MaterialTints.color(material, StandardProperties.TINT);
     }
 
+    /// The localized display name of `material` in `shape`, as shown on its stack or fluid.
+    public static String getLocalizedName(Material material, Shape shape) {
+        return ShapeText.displayName(shape, material);
+    }
+
     /// The Forge fluid MaterialLib registered for `material` in `shape`, or null when the material does not
     /// generate that fluid shape. `shape` must still be a fluid shape.
     public static Fluid getFluid(Material material, Shape shape) {

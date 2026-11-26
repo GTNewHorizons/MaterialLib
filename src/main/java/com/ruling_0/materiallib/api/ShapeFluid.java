@@ -53,7 +53,7 @@ public class ShapeFluid implements ServedShape {
     private final Set<Material> overrideIcons = new ReferenceOpenHashSet<>();
 
     /// Creates a fluid shape. Identifiers must be non-empty and free of ':' and whitespace. The fluid's display name
-    /// comes from the shape's [StandardProperties#DISPLAY_NAME_FORMAT_KEY].
+    /// comes from the shape's [StandardProperties#LOCALIZATION_FORMAT_KEY].
     public ShapeFluid(String modid, String name) {
         this(modid, name, null, null);
     }

@@ -45,11 +45,20 @@ public interface Shape {
     /// Sets a property value on this shape, for the mod that declared it, and returns the shape so calls chain.
     /// Only before shapes resolve.
     ///
-    /// This is the counterpart of the shape builders' `property` for a shape registered as a subclass instead
+    /// This is the counterpart of [ShapeBuilder#property] for a shape registered as a subclass instead
     /// (see [MaterialLibAPI#registerItemShape]). Changing a shape another mod declared goes through
     /// [MaterialLibAPI#editShape]; see [ShapeEdit].
     default <T> Shape setProperty(Property<T> property, T value) {
         throw new UnsupportedOperationException(this + " does not hold properties");
+    }
+
+    /// The translation key of the shape's display-name format, from [StandardProperties#LOCALIZATION_FORMAT_KEY].
+    /// Null when unset.
+    default String getLocalizationFormatKey() { return getProperty(StandardProperties.LOCALIZATION_FORMAT_KEY); }
+
+    /// Sets [StandardProperties#LOCALIZATION_FORMAT_KEY], as [#setProperty].
+    default Shape setLocalizationFormatKey(String key) {
+        return setProperty(StandardProperties.LOCALIZATION_FORMAT_KEY, key);
     }
 
     /// True if this shape sets the property explicitly; the property default does not count.

@@ -17,33 +17,33 @@ class ShapeNamingTest {
     }
 
     @Test
-    void materialNameKeyIsModidAndName() {
+    void materialLocalizationKeyIsModidAndName() {
         Material iron = material("examplemod", "TestIron");
         registry.resolve();
 
-        assertEquals("material.examplemod.TestIron", ShapeNaming.materialNameKey(iron));
+        assertEquals("material.examplemod.TestIron", ShapeNaming.materialLocalizationKey(iron));
     }
 
     @Test
-    void aDeclaredDisplayNameKeyReplacesTheMaterialNameKey() {
+    void aDeclaredLocalizationKeyReplacesTheDefaultMaterialKey() {
         Material iron = registry.newMaterial("examplemod", "TestIron", texture)
-            .setProperty(StandardProperties.DISPLAY_NAME_KEY, "Material.testiron")
+            .setLocalizationKey("Material.testiron")
             .build();
         registry.resolve();
 
-        assertEquals("Material.testiron", ShapeNaming.materialNameKey(iron));
+        assertEquals("Material.testiron", ShapeNaming.materialLocalizationKey(iron));
     }
 
     @Test
     void aMaterialFormatKeyPrecedesTheShapeFormatKeyForItsShapeOnly() {
         Material glass = registry.newMaterial("examplemod", "TestGlass", texture)
-            .setProperty(StandardProperties.DISPLAY_NAME_FORMAT_KEYS, Map.of("plate", "format.pane"))
+            .setProperty(StandardProperties.LOCALIZATION_FORMAT_KEYS, Map.of("plate", "format.pane"))
             .build();
         registry.resolve();
         TestShape plate = new TestShape("examplemod", "plate");
-        plate.setProperty(StandardProperties.DISPLAY_NAME_FORMAT_KEY, "format.plate");
+        plate.setProperty(StandardProperties.LOCALIZATION_FORMAT_KEY, "format.plate");
         TestShape foil = new TestShape("examplemod", "foil");
-        foil.setProperty(StandardProperties.DISPLAY_NAME_FORMAT_KEY, "format.foil");
+        foil.setProperty(StandardProperties.LOCALIZATION_FORMAT_KEY, "format.foil");
 
         assertEquals(List.of("format.pane", "format.plate"), ShapeNaming.formatKeys(plate, "plate", glass));
         assertEquals(List.of("format.foil"), ShapeNaming.formatKeys(foil, "foil", glass));

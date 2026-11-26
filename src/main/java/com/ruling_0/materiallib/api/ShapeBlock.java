@@ -295,10 +295,10 @@ public class ShapeBlock extends Block implements BackedShape {
         return icons.get(meta);
     }
 
-    // Bypass normal break particle rendering, otherwise EndlessIDs caps meta at 8 bits
     @Override
     @SideOnly(Side.CLIENT)
     public boolean addDestroyEffects(World world, int x, int y, int z, int meta, EffectRenderer effectRenderer) {
+        // Manually fire destroy effects since EndlessIDs caps normal effect meta at 8 bits
         if (world.getBlock(x, y, z) != this) return false;
         final int worldMeta = world.getBlockMetadata(x, y, z);
         if (worldMeta == meta) return false;
